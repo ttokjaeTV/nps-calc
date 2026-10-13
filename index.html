@@ -1714,7 +1714,7 @@ function buildUrl() {
   p.set('inf', document.getElementById('inf-on').checked ? (Math.round(parseFloat(document.getElementById('inflation').value) * 100) / 100 || 0) : 0);
   return location.href.split('?')[0].split('#')[0] + '?' + p.toString();
 }
-function syncUrl() { try { history.replaceState(null, '', buildUrl()); } catch (e) { /* file:// 등에서는 무시 */ } }
+function syncUrl() { try { history.replaceState(null, '', buildUrl() + location.hash); } catch (e) { /* file:// 등에서는 무시 */ } }
 function readUrl() {
   let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
   if (!q.toString()) return;
