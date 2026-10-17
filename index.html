@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script src="https://ttokjaetv.github.io/member-lock.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>국민연금 계산기 · 똑재TV</title>
 <meta name="description" content="국민연금 예상 월 수령액을 공단 공식 산식(2026년 A값·소득대체율 43% 반영)으로 계산합니다. 조기·정상·연기 11가지 시기 비교와 손익분기 나이까지 한 번에.">
@@ -532,8 +533,8 @@
           <div class="input-hint" id="premium-hint">-</div>
         </div>
         <details class="more" id="solve-box" style="margin-top:6px;">
-          <summary>공단 조회 금액에 맞추기 (평균 소득 역산)</summary>
-          <div class="input-group" style="margin-top:12px;">
+          <summary data-member-click="공단 조회 금액에 맞추기">공단 조회 금액에 맞추기 (평균 소득 역산)</summary>
+          <div class="input-group" style="margin-top:12px;" data-member="공단 조회 금액에 맞추기">
             <label class="label" for="nps-amt">공단에서 조회한 예상 월 연금액 (정상 수급)</label>
             <div class="input-wrap">
               <input type="number" id="nps-amt" data-unit="만원" value="" step="0.1" min="0" max="500" inputmode="decimal" placeholder="예: 125.4">
@@ -646,8 +647,8 @@
     <h3 class="chart-title" id="opt-title">언제 받기 시작하느냐에 따라 평생 받는 돈이 달라집니다</h3>
     <p class="chart-subtitle" id="opt-subtitle">-</p>
     <div class="dl-bar">
-      <button type="button" class="dl-btn" id="dl-csv">CSV 내려받기</button>
-      <button type="button" class="dl-btn" id="dl-xlsx">엑셀(.xlsx) 내려받기</button>
+      <button type="button" class="dl-btn" id="dl-csv" data-member-click="엑셀 내려받기">CSV 내려받기</button>
+      <button type="button" class="dl-btn" id="dl-xlsx" data-member-click="엑셀 내려받기">엑셀(.xlsx) 내려받기</button>
       <span class="dl-note">엑셀에는 시기별 비교표와 나이별 누적 수령액(원 단위)이 함께 들어갑니다</span>
     </div>
     <div class="table-wrap">
@@ -663,7 +664,7 @@
     <p class="chart-subtitle" id="chart-subtitle">-</p>
     <div class="chart-container"><canvas id="cum-chart"></canvas></div>
     <details class="more">
-      <summary>나이별 누적 수령액 표 보기</summary>
+      <summary data-member-click="나이별 누적 표">나이별 누적 수령액 표 보기</summary>
       <div class="table-wrap">
         <table class="data-table age-table">
           <thead id="age-head"></thead>
@@ -673,7 +674,7 @@
     </details>
   </div>
 
-  <div class="card" id="chunap-card">
+  <div class="card" id="chunap-card" data-member="추납 손익">
     <div class="step-label"><div class="step-line"></div><span class="step-text">추납(추후납부) 손익</span></div>
     <h3 class="chart-title">못 낸 기간, 지금 채워 넣으면 이득일까?</h3>
     <p class="chart-subtitle">실직·사업중단(납부예외), 경력단절 전업주부(무소득 배우자 적용제외), 군복무 기간은 <b>추납</b>으로 나중에 채울 수 있습니다. 최대 119개월까지, 지금 보험료로 내고 그만큼 가입기간을 인정받습니다.</p>
