@@ -15,7 +15,7 @@ const NPS = {
   DELAY_PER_YEAR: 0.072, // 연기연금: 1년 늦출 때마다 7.2%(월 0.6%) 가산, 최대 5년
   MIN_MONTHS: 120,       // 노령연금 최소 가입기간 10년
   MAX_CHUNAP: 119,       // 추납 최대 119개월 (10년 미만, 군복무 포함)
-  RATE_2026: 0.095,      // 2026년 연금보험료율 (2033년 13%까지 매년 0.5%p 인상)
+  RATE_2026: 0.095,      // 2026년 연금보험료율 (2033년 13%까지 매년 0.5%p 인상, npsPremiumRate)
   FIRST_YEAR: 1988,      // 국민연금 시행
 };
 
@@ -47,6 +47,28 @@ const floor10 = x => Math.floor(x / 10 + 1e-9) * 10;
 //  alphaEff: 가입월수로 가중평균한 비례상수, P: 전체 가입월수, B: 원
 function npsBaseMonthly(alphaEff, A, B, P) {
   return alphaEff * (A + B) * (P / 240) / 12;
+}
+
+// 연도별 연금보험료율 (법률 제20903호 부칙 제4조: 2026년 9.5%부터 매년 0.5%p 올라 2032년 12.5%, 2033년부터 13%)
+function npsPremiumRate(year) {
+  if (year <= 2025) return 0.09;
+  if (year >= 2033) return 0.13;
+  return (95 + 5 * (year - 2026)) / 1000;
+}
+
+// 추납 보험료율 = 납부기한이 속하는 달의 보험료율 (국민연금법 제92조③, 2025.11.25 개정)
+//  일시납 납부기한 = 신청한 달의 다음 달 말일(시행령 제62조④·제52조①) → 12월에 신청하면 다음 해 요율
+//  예외(법률 제21146호 부칙 제3조): 2025~2032년 12월에 신청하고 같은 달에 내면 그 해 요율
+function npsChunapRate(appYear, appMonth, sameMonth) {
+  if (appMonth === 12 && !(sameMonth && appYear >= 2025 && appYear <= 2032)) return npsPremiumRate(appYear + 1);
+  return npsPremiumRate(appYear);
+}
+
+// 매달 받는 금액 (국민연금법 제53·62·63조 문언 순서)
+//  기본연금액(부양가족연금 제외) × 조기·연기 조정률 → 10원 미만 버림 → + 부양가족연금 → 최고한도(cap) 적용
+function npsPayable(base, fam, rate, cap) {
+  const total = floor10(base * rate) + fam;
+  return { monthly: Math.min(total, cap), total, capHit: total > cap };
 }
 
 // 수급 시기 조정률 (offset: −5 ~ +5년, 음수 = 조기)
@@ -118,19 +140,18 @@ function npsCalc(o) {
 
   const base = npsBaseMonthly(alphaEff, A, B, P);
   const fam = (o.spouse ? NPS.SPOUSE : 0) + Math.max(0, Math.round(o.dependents || 0)) * NPS.DEPENDENT;
-  // 월지급액(부양가족연금 포함)은 B값을 넘을 수 없다 (공단 유의사항 5, 단일 B값으로 근사)
-  const capped = Math.min(base + fam, B);
-  const capHit = base + fam > B;
-  const basePart = Math.max(0, capped - fam);
-  const famPart = capped - basePart;
-
+  // 연금액 최고한도 (국민연금법 제53조): 연금의 월별 지급액(부양가족연금 포함)은
+  //  max(최종 5년 기준소득월액 평균, 전 가입기간 평균 B값)을 넘지 못한다 (둘 다 재평가 반영).
+  //  이 계산기는 평균 소득 하나(B값)만 넣으므로 최종 5년 평균도 B값과 같다고 보고 상한 = B값.
+  //  상한은 조기·연기 조정과 부양가족연금을 더한 뒤 맨 마지막에 적용 (연기가산분 예외 여부는 공단 실무 확인 필요)
+  const cap = floor10(B);
   const options = [];
   for (let k = -5; k <= 5; k++) {
     const rate = npsTimingRate(k);
-    const monthly = floor10(basePart * rate) + famPart;
-    options.push({ offset: k, age: startAge + k, year: birth + startAge + k, rate, monthly });
+    const p = npsPayable(base, fam, rate, cap);
+    options.push({ offset: k, age: startAge + k, year: birth + startAge + k, rate, monthly: p.monthly, total: p.total, capHit: p.capHit });
   }
-  Object.assign(res, { ok: true, base, fam, capped, capHit, basePart, famPart, options,
+  Object.assign(res, { ok: true, base, fam, cap, capHit: options[5].capHit, options,
     normal: options[5].monthly });
   return res;
 }
@@ -146,7 +167,7 @@ function monthsText(m) {
 // 손익분기 나이: 조기/연기(offset) 선택과 정상 수급의 누적 수령액(오늘 돈 가치)이 같아지는 나이
 //  조기 k년: (1 − 0.06k)(x − S + k) = (x − S)  → x = S + (1 − 0.06k)/0.06
 //  연기 k년: (1 + 0.072k)(x − S − k) = (x − S) → x = S + (1 + 0.072k)/0.072
-// 부양가족연금은 조정되지 않으므로 실제 월액으로 직접 푼다
+// 부양가족연금은 조정되지 않고 상한(B값)도 있으므로 실제 월액으로 직접 푼다. 상한에 걸려 월액이 같으면 null
 function npsBreakEven(res, offset) {
   if (!res.ok || res.short || offset === 0) return null;
   const S = res.startAge, Mn = res.normal, Mo = res.options[offset + 5].monthly;
@@ -164,8 +185,10 @@ function npsCumulative(res, offset, age) {
   return o.monthly * 12 * yrs;
 }
 
-// 추납 손익: o = npsCalc 입력, c = { months, B(신청월 기준소득월액, 원), voluntary(임의가입자), offset(받는 시기), rate(보험료율) }
-//  추납보험료 = 신청월 기준소득월액 × 납부기한 달 보험료율 × 개월 (국민연금공단 추납 안내)
+// 추납 손익: o = npsCalc 입력, c = { months, B(신청월 기준소득월액, 원), voluntary(임의가입자), offset(받는 시기),
+//   appYear·appMonth(신청 연·월), sameMonth(12월 신청 후 같은 달 납부), rate(보험료율 직접 지정) }
+//  추납보험료 = 신청월 기준소득월액 × 납부기한 달 보험료율 × 개월 (국민연금법 제92조③)
+//  신청 연·월이 없으면 2026년 요율(9.5%)
 //  임의가입자는 월 보험료 상한 = A값 × 보험료율
 //  추납할 수 있는 기간 = min(안 낸 기간, 119개월). 넣은 개월(asked)이 더 길면 limit까지만 계산 (capped)
 function npsChunap(o, c) {
@@ -173,7 +196,7 @@ function npsChunap(o, c) {
   const asked = Math.max(0, Math.round(c.months || 0));
   const limit = before.ok ? Math.min(NPS.MAX_CHUNAP, before.gap) : 0;
   const months = Math.min(asked, limit);
-  const rate = c.rate || NPS.RATE_2026;
+  const rate = c.rate || (c.appYear ? npsChunapRate(c.appYear, c.appMonth, c.sameMonth) : NPS.RATE_2026);
   const A = o.A || NPS.A;
   let xB = Math.max(NPS.B_MIN, Math.min(c.voluntary ? A : NPS.B_MAX, Math.round(c.B || 0)));
   const premium = floor10(xB * rate);               // 월 연금보험료 (10원 미만 버림)
@@ -201,4 +224,4 @@ function npsSolveB(o, targetMonthly) {
   return Math.round(B);
 }
 
-if (typeof module !== 'undefined') module.exports = { NPS, npsAlpha, npsReplacement, npsStartAge, npsCalc, npsChunap, npsSolveB, npsBaseMonthly, npsTimingRate, npsBreakEven, npsCumulative, floor10, monthsText };
+if (typeof module !== 'undefined') module.exports = { NPS, npsAlpha, npsPremiumRate, npsChunapRate, npsPayable, npsReplacement, npsStartAge, npsCalc, npsChunap, npsSolveB, npsBaseMonthly, npsTimingRate, npsBreakEven, npsCumulative, floor10, monthsText };

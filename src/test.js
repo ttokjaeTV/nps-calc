@@ -46,6 +46,16 @@ ok(E.npsCalc(Object.assign({}, base, { gapMonths: 12, extraMonths: 36 })).P === 
 ok(Math.abs(E.npsSolveB(base, E.npsCalc(base).normal) - 3000000) < 100, 'B값 역산');
 console.log('추납 예시(36개월·월 300만):', c.cost, '원 →', '월', c.delta, '원 증가 · 회수', (c.paybackMonths / 12).toFixed(1), '년');
 
+// 연금액 최고한도(법 제53조): 조기·연기 조정 → 부양가족연금 더함 → 마지막에 상한(B값)
+ok(E.npsPayable(700000, 59610, 0.7, 410000).monthly === 410000, '조기 70% 후 상한 (기본 70만·부양가족 59,610·상한 41만)');
+const cap4 = E.npsCalc({ birth: 1965, startYear: 1988, endYear: 2024, B: 300000, spouse: true, dependents: 2 });
+ok(cap4.cap === 410000 && cap4.options.every(o => o.monthly <= 410000) && cap4.options[10].monthly === 410000 && cap4.options[0].monthly === 410000, '상한은 조정 후 총액에 (연기 5년도 B값 이하)');
+ok(E.npsBreakEven(cap4, 5) === null, '상한에 걸려 월액 같으면 손익분기 없음');
+// 추납 보험료율 = 납부기한(신청 다음 달 말일) 달의 요율, 12월 신청은 다음 해 (같은 달 납부 특례는 그 해)
+ok(E.npsPremiumRate(2025) === 0.09 && E.npsPremiumRate(2026) === 0.095 && E.npsPremiumRate(2027) === 0.1 && E.npsPremiumRate(2032) === 0.125 && E.npsPremiumRate(2033) === 0.13, '연도별 보험료율');
+ok(E.npsChunapRate(2026, 10) === 0.095 && E.npsChunapRate(2026, 12) === 0.1 && E.npsChunapRate(2026, 12, true) === 0.095 && E.npsChunapRate(2032, 12) === 0.13, '추납 납부기한 달 요율');
+ok(E.npsChunap(base, { months: 36, B: 3000000, appYear: 2026, appMonth: 12 }).premium === 300000, '12월 신청 추납 = 다음 해 10%');
+
 const f = E.npsBaseMonthly(1.296, 3193511, 3500000, 480);
 console.log('firework 대조(비례상수 1.296 가정):', Math.round(f), '원 (firework 표시 1,445,380원)');
 process.exit(bad ? 1 : 0);
