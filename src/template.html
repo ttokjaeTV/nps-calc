@@ -1352,8 +1352,9 @@ function solveFromNps() {
   }
   document.getElementById('income').value = String(Math.round(B / 1000) / 10);
   rerender();
-  const r = npsCalc(readInputs());
-  msg.innerHTML = `평균 소득 <b>${formatManwon(Math.round(B / 10000))}</b>으로 맞췄습니다 · 계산 결과 월 ${won(r.normal)} (입력 ${won(amt)})`;
+  // 공단 조회 금액은 부양가족연금을 뺀 정상 수급 월액이므로 같은 기준으로 비교한다
+  const r = npsCalc(Object.assign(readInputs(), { spouse: false, dependents: 0 }));
+  msg.innerHTML = `평균 소득 <b>${formatManwon(Math.round(B / 10000))}</b>으로 맞췄습니다 · 계산 결과 월 ${won(r.normal)} (부양가족연금 제외 · 입력 ${won(amt)})`;
 }
 
 // ============== 인사이트 ==============
