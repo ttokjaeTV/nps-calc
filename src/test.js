@@ -35,7 +35,14 @@ ok(E.npsCalc(Object.assign({}, base, { extraMonths: 0 })).normal === E.npsCalc(b
 const c = E.npsChunap(base, { months: 36, B: 3000000 });
 ok(c.premium === 285000 && c.cost === 285000 * 36 && c.delta > 0, '추납 보험료');
 ok(E.npsChunap(base, { months: 12, B: 5000000, voluntary: true }).xB === 3193511, '임의가입자 A값 상한');
-ok(E.npsChunap({ birth: 1980, startYear: 2010, endYear: 2018, B: 2500000 }, { months: 24, B: 410000 }).becameEligible, '추납으로 10년 충족');
+ok(E.npsChunap({ birth: 1980, startYear: 2010, endYear: 2019, gapMonths: 24, B: 2500000 }, { months: 24, B: 410000 }).becameEligible, '추납으로 10년 충족');
+// 추납은 안 낸 기간 안에서만: min(추납 개월, 안 낸 기간, 119)
+const c0 = E.npsChunap(Object.assign({}, base, { gapMonths: 0 }), { months: 36, B: 3000000 });
+ok(c0.months === 0 && c0.limit === 0 && c0.capped && c0.cost === 0 && c0.delta === 0, '안 낸 기간 0개월이면 추납 0개월');
+const c1 = E.npsChunap({ birth: 1980, startYear: 2017, endYear: 2026, gapMonths: 1, B: 2500000 }, { months: 12, B: 410000 });
+ok(c1.months === 1 && c1.capped && c1.after.P === 120 && c1.becameEligible, '안 낸 1개월 → 추납 1개월');
+ok(E.npsChunap(Object.assign({}, base, { gapMonths: 200 }), { months: 150, B: 3000000 }).months === 119, '추납 최대 119개월');
+ok(E.npsCalc(Object.assign({}, base, { gapMonths: 12, extraMonths: 36 })).P === 408, '추납 후 가입월수 ≤ 전체 기간');
 ok(Math.abs(E.npsSolveB(base, E.npsCalc(base).normal) - 3000000) < 100, 'B값 역산');
 console.log('추납 예시(36개월·월 300만):', c.cost, '원 →', '월', c.delta, '원 증가 · 회수', (c.paybackMonths / 12).toFixed(1), '년');
 

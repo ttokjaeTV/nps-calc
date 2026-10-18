@@ -74,7 +74,8 @@ function npsCalc(o) {
   const P0 = fullMonths - gap;
   const alpha0 = sumAlpha / fullMonths;   // 고르게 뺐으므로 가중평균은 그대로
   // 추납(추후납부)으로 더하는 기간: 납부한 해의 비례상수·그때 기준소득월액으로 인정 (2025-11 개편: 납부 시점 기준)
-  const xm = Math.max(0, Math.min(NPS.MAX_CHUNAP, Math.round(o.extraMonths || 0)));
+  //  추납은 안 낸 기간(납부예외·적용제외) 안에서만, 최대 119개월
+  const xm = Math.max(0, Math.min(NPS.MAX_CHUNAP, gap, Math.round(o.extraMonths || 0)));
   const xAlpha = o.extraAlpha || npsAlpha(NPS.A_YEAR);
   const P = P0 + xm;
   const alphaEff = P > 0 ? (alpha0 * P0 + xAlpha * xm) / P : alpha0;
@@ -166,14 +167,17 @@ function npsCumulative(res, offset, age) {
 // 추납 손익: o = npsCalc 입력, c = { months, B(신청월 기준소득월액, 원), voluntary(임의가입자), offset(받는 시기), rate(보험료율) }
 //  추납보험료 = 신청월 기준소득월액 × 납부기한 달 보험료율 × 개월 (국민연금공단 추납 안내)
 //  임의가입자는 월 보험료 상한 = A값 × 보험료율
+//  추납할 수 있는 기간 = min(안 낸 기간, 119개월). 넣은 개월(asked)이 더 길면 limit까지만 계산 (capped)
 function npsChunap(o, c) {
-  const months = Math.max(0, Math.min(NPS.MAX_CHUNAP, Math.round(c.months || 0)));
+  const before = npsCalc(o);
+  const asked = Math.max(0, Math.round(c.months || 0));
+  const limit = before.ok ? Math.min(NPS.MAX_CHUNAP, before.gap) : 0;
+  const months = Math.min(asked, limit);
   const rate = c.rate || NPS.RATE_2026;
   const A = o.A || NPS.A;
   let xB = Math.max(NPS.B_MIN, Math.min(c.voluntary ? A : NPS.B_MAX, Math.round(c.B || 0)));
   const premium = floor10(xB * rate);               // 월 연금보험료 (10원 미만 버림)
   const cost = premium * months;
-  const before = npsCalc(o);
   const after = npsCalc(Object.assign({}, o, { extraMonths: months, extraB: xB, voluntary: c.voluntary }));
   const off = Math.max(-5, Math.min(5, Math.round(c.offset || 0)));
   const mBefore = before.ok && !before.short ? before.options[off + 5].monthly : 0;
@@ -182,7 +186,7 @@ function npsChunap(o, c) {
   const startAge = after.ok ? after.startAge + off : null;
   const paybackMonths = delta > 0 ? cost / delta : Infinity;
   return {
-    ok: before.ok && after.ok, months, xB, premium, cost, rate, before, after, mBefore, mAfter, delta, startAge,
+    ok: before.ok && after.ok, months, asked, limit, capped: asked > months, xB, premium, cost, rate, before, after, mBefore, mAfter, delta, startAge,
     becameEligible: before.ok && before.short && after.ok && !after.short,
     stillShort: after.ok && after.short,
     paybackMonths, beAge: isFinite(paybackMonths) && startAge !== null ? startAge + paybackMonths / 12 : null,

@@ -956,7 +956,7 @@ function readInputs() {
     plan: Math.max(60, Math.min(110, Math.round(v('plan') || 90))),
     infOn, inflation: infOn ? Math.max(0, Math.min(10, isFinite(v('inflation')) ? v('inflation') : 2.5)) / 100 : 0,
     need: Math.max(0, v('need') || 0) * 10000,
-    cm: Math.max(0, Math.min(119, Math.round(v('cm') || 0))),
+    cm: Math.max(0, Math.round(v('cm') || 0)),   // 119개월·안 낸 기간 상한은 npsChunap에서 (넘으면 추납 칸에 안내)
     cb: Math.max(0, v('cb') || 0) * 10000,
     cv: document.getElementById('cv').checked,
   };
@@ -1028,6 +1028,7 @@ function renderSummary(inp, res) {
   if (w.includes('young')) warn.push(`만 18세 전 가입은 직장에 다닌 경우 등 일부만 해당합니다.`);
   if (w.includes('voluntary')) warn.push(`만 60세 이후 기간은 의무가입이 아니라 '임의계속가입'(본인이 신청해 보험료 전액 부담)으로 낼 때만 인정됩니다.`);
   if (w.includes('pastStart')) warn.push(`가입 종료연도가 수급 시작 연도와 겹칩니다. 연금을 받기 시작한 뒤에는 보험료를 내지 않으니 종료연도를 확인해 주세요.`);
+  else if (SEL < 0 && res.endYear >= res.birth + S + SEL) warn.push(`가입 종료연도(${res.endYear}년)가 ${offLabel(SEL)} 수급 시작 연도(${res.birth + S + SEL}년)와 겹칩니다. 조기노령연금은 A값을 넘는 소득이 없을 때만 받을 수 있고, 받기 시작한 뒤에는 보험료를 내지 않으니 종료연도나 받는 시기를 확인해 주세요.`);
   if (warn.length) h += warn.map(t => `<span class="warn">⚠ ${t}</span>`).join('');
   el.innerHTML = h;
 }
@@ -1297,10 +1298,16 @@ function renderNeed(inp, res) {
 function renderChunap(inp, res) {
   const out = document.getElementById('chunap-out'), note = document.getElementById('chunap-note'), hint = document.getElementById('cm-hint');
   if (!res.ok) return;
-  const gapTxt = inp.gapMonths > 0 ? `STEP 01에 넣은 안 낸 기간은 ${Math.round(inp.gapMonths)}개월입니다. ` : '';
-  hint.innerHTML = inp.cm > 0 && inp.gapMonths > 0 && inp.cm > inp.gapMonths
-    ? `<span style="color:var(--accent)">⚠ 안 낸 기간(${Math.round(inp.gapMonths)}개월)보다 깁니다. 추납은 실제로 못 낸 기간(납부예외·적용제외·군복무)만 가능합니다.</span>`
-    : gapTxt + '추납한 개월 수만큼 가입기간에 더해 계산합니다.';
+  // 추납은 안 낸 기간(납부예외·적용제외) 안에서만, 최대 119개월
+  const limit = Math.min(NPS.MAX_CHUNAP, res.gap);
+  if (!limit) {
+    hint.innerHTML = 'STEP 01의 안 낸 기간이 0개월입니다.';
+    out.innerHTML = `<div class="input-hint"><b>추납 대상 기간이 없습니다.</b> 추납은 안 낸 기간(납부예외·적용제외) 안에서만 할 수 있습니다. STEP 01의 '중간에 안 낸 기간'에 그 개월 수를 넣으면 계산합니다.</div>`;
+    note.innerHTML = chunapFacts(); return;
+  }
+  hint.innerHTML = inp.cm > limit
+    ? `<span style="color:var(--accent)">⚠ ${limit === res.gap ? `안 낸 기간(${res.gap}개월)보다 깁니다. 추납은 안 낸 기간(납부예외·적용제외) 안에서만 가능해` : `추납은 최대 ${NPS.MAX_CHUNAP}개월까지만 가능해`} <b>${limit}개월</b>로 계산했습니다.</span>`
+    : `STEP 01에 넣은 안 낸 기간은 ${res.gap}개월입니다. 추납한 개월 수만큼 가입기간에 더해 계산합니다.`;
   if (!inp.cm) { out.innerHTML = '<div class="input-hint">추납할 기간을 넣어 주세요.</div>'; note.innerHTML = chunapFacts(); return; }
   const c = npsChunap(inp, { months: inp.cm, B: inp.cb, voluntary: inp.cv, offset: SEL });
   if (!c.ok) { out.innerHTML = '-'; return; }
