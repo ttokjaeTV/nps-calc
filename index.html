@@ -451,7 +451,7 @@
     </h1>
     <p class="hero-desc">
       출생연도·가입 기간·평균 소득만 넣으면 예상 월 연금액을 공단 공식 산식으로 계산합니다.<br>
-      일찍 받을지(조기), 늦춰 받을지(연기) 11가지 시기를 한 번에 비교하고, 몇 살부터 이득인지 손익분기 나이까지 보여드립니다.
+      일찍 받을지(조기), 늦춰 받을지(연기) <span data-rule="NPS.maxEarlyYears+NPS.maxDeferralYears+1">11</span>가지 시기를 한 번에 비교하고, 몇 살부터 이득인지 손익분기 나이까지 보여드립니다.
     </p>
   </div>
 
@@ -489,13 +489,13 @@
           <div class="input-group">
             <label class="label" for="start">가입 시작연도</label>
             <div class="input-wrap">
-              <input type="number" id="start" data-unit="년" value="1998" step="1" min="1988" max="2075" inputmode="numeric">
+              <input type="number" id="start" data-unit="년" value="1998" step="1" min="1988" data-rule="NPS.firstYear" data-fmt="i" data-rule-attr="min" max="2075" inputmode="numeric">
             </div>
           </div>
           <div class="input-group">
             <label class="label" for="end">가입 종료(예상)연도</label>
             <div class="input-wrap">
-              <input type="number" id="end" data-unit="년" value="2031" step="1" min="1988" max="2080" inputmode="numeric">
+              <input type="number" id="end" data-unit="년" value="2031" step="1" min="1988" data-rule="NPS.firstYear" data-fmt="i" data-rule-attr="min" max="2080" inputmode="numeric">
             </div>
           </div>
         </div>
@@ -524,10 +524,10 @@
           <div class="chips" data-target="income">
             <button class="chip" data-v="200">200만</button>
             <button class="chip" data-v="300">300만</button>
-            <button class="chip" data-rule="A">평균(A값) 319만</button>
+            <button class="chip" data-chip-rule="A">평균(A값) <span data-rule="NPS.A/1e4" data-fmt="f0">319</span>만</button>
             <button class="chip" data-v="400">400만</button>
             <button class="chip" data-v="500">500만</button>
-            <button class="chip" data-rule="B_MAX">상한 659만</button>
+            <button class="chip" data-chip-rule="B_MAX">상한 <span data-rule="NPS.incomeCapMonthly/1e4">659</span>만</button>
           </div>
           <div class="input-hint">보험료를 매기는 기준소득월액의 평균입니다. 직장인은 비과세(식대 등)를 뺀 세전 월급, 지역가입자는 신고한 소득. 예전 소득은 <b>오늘 돈 가치로 환산</b>해 평균을 내세요 (공단도 과거 소득을 재평가해 계산합니다).</div>
           <div class="input-hint" id="premium-hint">-</div>
@@ -557,21 +557,21 @@
   <div class="card">
     <div class="step-label"><div class="step-line"></div><span class="step-text">STEP 02 / 받는 시기와 가족</span></div>
     <h2 class="card-title">언제부터 받을까요?</h2>
-    <p class="card-subtitle">정상 수급 나이보다 <b>최대 5년 일찍</b>(1년에 6%씩 평생 감액) 또는 <b>최대 5년 늦게</b>(1년에 7.2%씩 평생 증액) 받을 수 있습니다. 눌러서 바꿔 보세요.</p>
+    <p class="card-subtitle">정상 수급 나이보다 <b>최대 <span data-rule="NPS.maxEarlyYears">5</span>년 일찍</b>(1년에 <span data-rule="NPS.earlyReductionPerYear*100">6</span>%씩 평생 감액) 또는 <b>최대 <span data-rule="NPS.maxDeferralYears">5</span>년 늦게</b>(1년에 <span data-rule="NPS.deferralBonusPerYear*100">7.2</span>%씩 평생 증액) 받을 수 있습니다. 눌러서 바꿔 보세요.</p>
     <div class="timing-chips" id="timing-chips"></div>
     <div class="input-hint" id="timing-hint" style="margin-top:10px;">-</div>
 
     <div class="grid-2" style="margin-top:22px;">
       <div class="sub-card">
         <div class="sub-card-title">부양가족연금 (선택)</div>
-        <label class="check-row"><input type="checkbox" id="spouse"> 배우자가 있어요 <span class="cr-sub">월 25,550원 더</span></label>
+        <label class="check-row"><input type="checkbox" id="spouse"> 배우자가 있어요 <span class="cr-sub">월 <span data-rule="NPS.familyBenefitSpouseMonthly">25,550</span>원 더</span></label>
         <div class="input-group" style="margin-top:12px;">
           <label class="label" for="dep">부양하는 자녀(19세 미만)·부모(60세 이상) 수</label>
           <div class="input-wrap">
             <input type="number" id="dep" data-unit="명" value="0" step="1" min="0" max="10" inputmode="numeric">
             <span class="input-currency empty" id="dep-display">없음</span>
           </div>
-          <div class="input-hint">1명당 월 17,030원 · 연금 받는 사람이 생계를 책임지는 가족만 해당 (2026년 금액)</div>
+          <div class="input-hint">1명당 월 <span data-rule="NPS.familyBenefitOtherMonthly">17,030</span>원 · 연금 받는 사람이 생계를 책임지는 가족만 해당 (<span data-rule="meta.year" data-fmt="i">2026</span>년 금액)</div>
         </div>
       </div>
       <div class="sub-card">
@@ -677,21 +677,21 @@
   <div class="card" id="chunap-card" data-member="추납 손익">
     <div class="step-label"><div class="step-line"></div><span class="step-text">추납(추후납부) 손익</span></div>
     <h3 class="chart-title">못 낸 기간, 지금 채워 넣으면 이득일까?</h3>
-    <p class="chart-subtitle">실직·사업중단(납부예외), 경력단절 전업주부(무소득 배우자 적용제외), 군복무 기간은 <b>추납</b>으로 나중에 채울 수 있습니다. 최대 119개월까지, 지금 보험료로 내고 그만큼 가입기간을 인정받습니다.</p>
+    <p class="chart-subtitle">실직·사업중단(납부예외), 경력단절 전업주부(무소득 배우자 적용제외), 군복무 기간은 <b>추납</b>으로 나중에 채울 수 있습니다. 최대 <span data-rule="NPS.maxChunapMonths">119</span>개월까지, 지금 보험료로 내고 그만큼 가입기간을 인정받습니다.</p>
     <div class="grid-2" style="align-items:stretch;">
       <div class="sub-card">
         <div class="sub-card-title">추납 조건</div>
         <div class="input-group">
           <label class="label" for="cm">추납할 기간</label>
           <div class="input-wrap">
-            <input type="number" id="cm" data-unit="개월" value="36" step="1" min="0" max="119" inputmode="numeric">
+            <input type="number" id="cm" data-unit="개월" value="36" step="1" min="0" max="119" data-rule="NPS.maxChunapMonths" data-fmt="i" data-rule-attr="max" inputmode="numeric">
             <span class="input-currency" id="cm-display">-</span>
           </div>
           <div class="chips" data-target="cm">
             <button class="chip" data-v="12">12개월</button>
             <button class="chip" data-v="36">36개월</button>
             <button class="chip" data-v="60">60개월</button>
-            <button class="chip" data-v="119">최대 119개월</button>
+            <button class="chip" data-v="119" data-rule="NPS.maxChunapMonths" data-fmt="i" data-rule-attr="data-v">최대 <span data-rule="NPS.maxChunapMonths">119</span>개월</button>
           </div>
           <div class="input-hint" id="cm-hint">-</div>
         </div>
@@ -702,11 +702,11 @@
             <span class="input-currency" id="cb-display">-</span>
           </div>
           <div class="chips" data-target="cb">
-            <button class="chip" data-rule="B_MIN">하한 41만</button>
+            <button class="chip" data-chip-rule="B_MIN">하한 <span data-rule="NPS.incomeFloorMonthly/1e4">41</span>만</button>
             <button class="chip" data-v="100">100만</button>
-            <button class="chip" data-rule="A">A값 319만</button>
+            <button class="chip" data-chip-rule="A">A값 <span data-rule="NPS.A/1e4" data-fmt="f0">319</span>만</button>
           </div>
-          <div class="input-hint">직장·지역가입자는 지금 보험료 기준 소득, 소득 없이 임의가입했다면 본인이 정한 소득(최저 41만원)</div>
+          <div class="input-hint">직장·지역가입자는 지금 보험료 기준 소득, 소득 없이 임의가입했다면 본인이 정한 소득(최저 <span data-rule="NPS.incomeFloorMonthly/1e4">41</span>만원)</div>
         </div>
         <label class="check-row"><input type="checkbox" id="cv"> 임의가입자로 추납 <span class="cr-sub">월 보험료 상한 A값 × 보험료율</span></label>
       </div>
@@ -755,7 +755,7 @@
           <tr><td>쓰는 자료</td><td>내 실제 가입 이력 — 연도별 소득을 재평가하고, 크레딧·추납까지 반영</td><td>평균 소득 하나로 근사 (공단 간편계산과 같은 산식)</td></tr>
           <tr><td>정확도</td><td><b>가장 정확</b> (지금까지 이력 기준)</td><td>평균 소득을 공단 금액에 맞추면 그 기준으로 근사</td></tr>
           <tr><td>로그인</td><td>필요 (공동·간편인증 등)</td><td>필요 없음, 입력값은 이 브라우저에서만 계산</td></tr>
-          <tr><td>잘하는 것</td><td>내 이력 확인, 공식 예상액</td><td>가입 기간·소득·안 낸 기간을 바꿔 보기, 조기·연기 11가지 손익분기, 추납 손익, 생활비 연결</td></tr>
+          <tr><td>잘하는 것</td><td>내 이력 확인, 공식 예상액</td><td>가입 기간·소득·안 낸 기간을 바꿔 보기, 조기·연기 <span data-rule="NPS.maxEarlyYears+NPS.maxDeferralYears+1">11</span>가지 손익분기, 추납 손익, 생활비 연결</td></tr>
         </tbody>
       </table>
     </div>
@@ -807,13 +807,13 @@
     <div class="method-sub">공식 (국민연금공단 '예상연금 간단계산'과 같은 방식)</div>
     <ul class="method-list">
       <li><strong>월 연금 = 비례상수 × (A값 + B값) × (1 + 0.05 × 20년 초과 가입월수 ÷ 12) × 지급률 ÷ 12.</strong> 지급률은 가입 10년 50%에서 한 달마다 5/12%씩 올라 20년에 100%가 됩니다. 두 식을 합치면 가입기간 부분이 정확히 '가입월수 ÷ 240'이 됩니다(10년 0.5배 · 20년 1배 · 40년 2배).</li>
-      <li><strong>A값</strong> = 2026년 적용 전체 가입자 평균소득월액 <strong>3,193,511원</strong>. <strong>B값</strong> = 입력한 평균 월소득, 단 기준소득월액 하한 41만원·상한 659만원(2026년 7월~2027년 6월) 안으로 맞춥니다.</li>
-      <li><strong>비례상수(소득대체율)</strong>: 1988~1998년 가입분 2.4(70%) · 1999~2007년 1.8(60%) · 2008년 1.5(50%) · 2009~2025년 매년 0.015씩 감소(2025년 1.245, 41.5%) · <strong>2026년 이후 1.29(43%)</strong>. 2026년 연금개혁으로 올라간 43%는 2026년 이후 가입분에만 적용됩니다.</li>
+      <li><strong>A값</strong> = <span data-rule="NPS.aYear" data-fmt="i">2026</span>년 적용 전체 가입자 평균소득월액 <strong><span data-rule="NPS.A">3,193,511</span>원</strong>. <strong>B값</strong> = 입력한 평균 월소득, 단 기준소득월액 하한 <span data-rule="NPS.incomeFloorMonthly/1e4">41</span>만원·상한 <span data-rule="NPS.incomeCapMonthly/1e4">659</span>만원(2026년 7월~2027년 6월) 안으로 맞춥니다.</li>
+      <li><strong>비례상수(소득대체율)</strong>: <span data-rule="NPS.firstYear" data-fmt="i">1988</span>~1998년 가입분 <span data-rule="NPS.alphaByYear.1988">2.4</span>(70%) · 1999~2007년 <span data-rule="NPS.alphaByYear.1999">1.8</span>(60%) · 2008년 <span data-rule="NPS.alphaByYear.2008">1.5</span>(50%) · 2009~2025년 매년 <span data-rule="NPS.alphaByYear.2008-NPS.alphaByYear.2009">0.015</span>씩 감소(2025년 <span data-rule="NPS.alphaByYear.2025">1.245</span>, 41.5%) · <strong>2026년 이후 <span data-rule="NPS.alphaByYear.2026">1.29</span>(43%)</strong>. 2026년 연금개혁으로 올라간 43%는 2026년 이후 가입분에만 적용됩니다.</li>
       <li><strong>상한</strong>(국민연금법 제53조): 매달 받는 금액(부양가족연금 포함)은 '최종 5년 평균 소득'과 '전체 기간 평균 소득(B값)' 중 큰 금액을 넘을 수 없습니다. 평균 소득 하나만 넣는 계산기라 최종 5년 평균도 B값과 같다고 보고 B값을 상한으로 썼습니다. 법 조문 순서대로 조기·연기 조정과 부양가족연금을 더한 <b>총액</b>에 맨 마지막에 적용하므로, 상한에 걸리면 늦춰 받아도 월액이 늘지 않습니다. 연기 가산분까지 상한을 적용하는지는 공단 실무가 다를 수 있습니다(☎1355 확인). 소득이 낮고 가입기간이 길면 이 상한에 걸립니다.</li>
-      <li><strong>조기·연기</strong>: 조기노령연금은 1년 앞당길 때마다 6%(월 0.5%), 연기연금은 1년 늦출 때마다 7.2%(월 0.6%)씩 기본연금액을 평생 조정합니다. 부양가족연금은 조정하지 않습니다. 공단 예상월액표처럼 10원 미만은 버립니다.</li>
-      <li><strong>수급개시연령</strong>: 1952년 이전 60세 · 1953~56년생 61세 · 1957~60년생 62세 · 1961~64년생 63세 · 1965~68년생 64세 · 1969년생 이후 65세.</li>
+      <li><strong>조기·연기</strong>: 조기노령연금은 1년 앞당길 때마다 <span data-rule="NPS.earlyReductionPerYear*100">6</span>%(월 <span data-rule="NPS.earlyReductionPerYear/12*100">0.5</span>%), 연기연금은 1년 늦출 때마다 <span data-rule="NPS.deferralBonusPerYear*100">7.2</span>%(월 <span data-rule="NPS.deferralBonusPerYear/12*100">0.6</span>%)씩 기본연금액을 평생 조정합니다. 부양가족연금은 조정하지 않습니다. 공단 예상월액표처럼 <span data-rule="NPS.truncUnit">10</span>원 미만은 버립니다.</li>
+      <li><strong>수급개시연령</strong>: <span data-rule="NPS.startAgeByBirthYear.0.0" data-fmt="i">1952</span>년 이전 <span data-rule="NPS.startAgeByBirthYear.0.1">60</span>세 · <span data-rule="NPS.startAgeByBirthYear.0.0+1" data-fmt="i">1953</span>~<span data-rule="NPS.startAgeByBirthYear.1.0-1900" data-fmt="i">56</span>년생 <span data-rule="NPS.startAgeByBirthYear.1.1">61</span>세 · <span data-rule="NPS.startAgeByBirthYear.1.0+1" data-fmt="i">1957</span>~<span data-rule="NPS.startAgeByBirthYear.2.0-1900" data-fmt="i">60</span>년생 <span data-rule="NPS.startAgeByBirthYear.2.1">62</span>세 · <span data-rule="NPS.startAgeByBirthYear.2.0+1" data-fmt="i">1961</span>~<span data-rule="NPS.startAgeByBirthYear.3.0-1900" data-fmt="i">64</span>년생 <span data-rule="NPS.startAgeByBirthYear.3.1">63</span>세 · <span data-rule="NPS.startAgeByBirthYear.3.0+1" data-fmt="i">1965</span>~<span data-rule="NPS.startAgeByBirthYear.4.0-1900" data-fmt="i">68</span>년생 <span data-rule="NPS.startAgeByBirthYear.4.1">64</span>세 · <span data-rule="NPS.startAgeByBirthYear.4.0+1" data-fmt="i">1969</span>년생 이후 <span data-rule="NPS.startAgeByBirthYear.5.1">65</span>세.</li>
       <li><strong>누적 수령액·손익분기</strong>: 연금은 매년 물가만큼 오르므로 '오늘 돈 가치'로는 월액이 평생 같다고 보고 더했습니다. 이자·할인은 반영하지 않았습니다.</li>
-      <li><strong>추납 손익</strong>: 추납보험료 = 신청한 달 기준소득월액 × 납부기한 달 보험료율 × 개월(최대 119개월)입니다. 보험료율은 2026년 9.5%, 2027년 10%로 매년 0.5%p 올라 2032년 12.5%, 2033년 13%입니다. 이번 달에 신청해 일시납 납부기한(신청한 다음 달 말일)까지 낸다고 보고 그 달 요율을 썼습니다(12월 신청은 다음 해 요율, 12월 안에 바로 내면 그 해 요율). 임의가입자는 월 보험료 상한이 A값 × 보험료율입니다(국민연금공단 추납 안내). 추납 기간은 낸 해의 비례상수(2026년 1.29)와 그때 기준소득월액으로 가입기간·평균 소득에 더해 다시 계산하고, 늘어난 월 연금으로 낸 돈을 다 받는 데 걸리는 기간을 손익분기로 보았습니다. 분할납부 이자는 넣지 않았습니다.</li>
+      <li><strong>추납 손익</strong>: 추납보험료 = 신청한 달 기준소득월액 × 납부기한 달 보험료율 × 개월(최대 <span data-rule="NPS.maxChunapMonths">119</span>개월)입니다. 보험료율은 2026년 <span data-rule="NPS.premiumRateByYear.2026*100">9.5</span>%, 2027년 <span data-rule="NPS.premiumRateByYear.2027*100">10</span>%로 매년 <span data-rule="(NPS.premiumRateByYear.2027-NPS.premiumRateByYear.2026)*100">0.5</span>%p 올라 2032년 <span data-rule="NPS.premiumRateByYear.2032*100">12.5</span>%, 2033년 <span data-rule="NPS.premiumRateByYear.2033*100">13</span>%입니다. 이번 달에 신청해 일시납 납부기한(신청한 다음 달 말일)까지 낸다고 보고 그 달 요율을 썼습니다(12월 신청은 다음 해 요율, 12월 안에 바로 내면 그 해 요율). 임의가입자는 월 보험료 상한이 A값 × 보험료율입니다(국민연금공단 추납 안내). 추납 기간은 낸 해의 비례상수(2026년 <span data-rule="NPS.alphaByYear.2026">1.29</span>)와 그때 기준소득월액으로 가입기간·평균 소득에 더해 다시 계산하고, 늘어난 월 연금으로 낸 돈을 다 받는 데 걸리는 기간을 손익분기로 보았습니다. 분할납부 이자는 넣지 않았습니다.</li>
       <li><strong>공단 조회 금액에 맞추기</strong>: 입력한 가입 기간에서 '정상 수급 월액 = 공단 조회 금액'이 되도록 위 공식을 B값에 대해 거꾸로 풀었습니다.</li>
       <li><strong>검증</strong>: 2026년 1월 첫 가입 가정의 공단 '노령연금 예상월액표'(소득 620구간 × 가입 10~40년, 4,340칸)와 원 단위까지 모두 같게 나오는 것을 확인했습니다.</li>
     </ul>
@@ -826,7 +826,7 @@
       <li><strong>세금·건보료</strong> — 세전 금액입니다. 2002년 이후 낸 보험료에서 나오는 연금은 연금소득세 대상이고, 공적연금은 건보료 피부양자 소득 기준에도 들어갑니다.</li>
       <li><strong>기초연금 연계 감액</strong> — 국민연금을 많이 받으면 기초연금이 줄어들 수 있습니다.</li>
     </ul>
-    <p class="src-note">출처: 국민연금공단 <a href="https://nps.or.kr/comm/quick/getOHAH0011P0.do" target="_blank" rel="noopener">예상연금 간단계산 · 노령연금 예상월액표(2026년 7월 상·하한액 반영)</a> — 산식·A값·상하한액·부양가족연금액 · 보건복지부 「연금개혁으로 국민연금이 이렇게 달라집니다」(<a href="https://www.bokjiro.go.kr/ssis-tbu/cms/pc/news/promotion/1307972_1118.html" target="_blank" rel="noopener">복지로, 2025-03-24</a>) — 소득대체율 43%·보험료율 단계 인상 · 국민연금공단 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0047M0.do" target="_blank" rel="noopener">연금보험료의 추후납부(추납)</a> — 추납 대상·최대 119개월·산정기준·분할납부 · 토스뱅크 「2026 국민연금, 연금개혁으로 무엇이 바뀌나요?」 — 추납 보험료율·소득대체율 납부 시점 적용 · 국민연금연구원 「국민노후보장패널 제10차 부가조사」 — 적정 노후생활비. 2026-10-13 확인.</p>
+    <p class="src-note">출처: 국민연금공단 <a href="https://nps.or.kr/comm/quick/getOHAH0011P0.do" target="_blank" rel="noopener">예상연금 간단계산 · 노령연금 예상월액표(2026년 7월 상·하한액 반영)</a> — 산식·A값·상하한액·부양가족연금액 · 보건복지부 「연금개혁으로 국민연금이 이렇게 달라집니다」(<a href="https://www.bokjiro.go.kr/ssis-tbu/cms/pc/news/promotion/1307972_1118.html" target="_blank" rel="noopener">복지로, 2025-03-24</a>) — 소득대체율 43%·보험료율 단계 인상 · 국민연금공단 <a href="https://www.nps.or.kr/pnsinfo/ntpsklg/getOHAF0047M0.do" target="_blank" rel="noopener">연금보험료의 추후납부(추납)</a> — 추납 대상·최대 <span data-rule="NPS.maxChunapMonths">119</span>개월·산정기준·분할납부 · 토스뱅크 「2026 국민연금, 연금개혁으로 무엇이 바뀌나요?」 — 추납 보험료율·소득대체율 납부 시점 적용 · 국민연금연구원 「국민노후보장패널 제10차 부가조사」 — 적정 노후생활비. 2026-10-13 확인.</p>
   </div>
 
   <footer>
@@ -837,6 +837,7 @@
 </div>
 
 <script src="https://ttokjaetv.github.io/rules/v2026.1/rules.js"></script>
+<script src="https://ttokjaetv.github.io/rules/fill-v1.js"></script>
 <script>
 if (!window.TTOKJAE_RULES) {
   var TJR_MSG = '기준값 파일(rules.js)을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.';
@@ -1176,7 +1177,7 @@ const RATE_NOW = npsAlpha(NPS.A_YEAR);                    // 2026년 이후 가�
 const manTxt = v => String(v / 1e4).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '만원';   // 20000000 → '2,000만원'
 // 선택 칩 값: A값(만원 반올림)·기준소득월액 상·하한(만원)
 const RULE_CHIP = { A: Math.round(NPS.A / 1e4), B_MAX: NPS.B_MAX / 1e4, B_MIN: NPS.B_MIN / 1e4 };
-document.querySelectorAll('.chip[data-rule]').forEach(c => { c.dataset.v = String(RULE_CHIP[c.dataset.rule]); });
+document.querySelectorAll('.chip[data-chip-rule]').forEach(c => { c.dataset.v = String(RULE_CHIP[c.dataset.chipRule]); });
 
 // ============== 포맷 ==============
 const NOW_YEAR = NPS.A_YEAR;   // 계산 기준 연도 (A값 연도와 같게 고정)
