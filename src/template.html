@@ -625,7 +625,7 @@
   <div class="card" id="detail-card">
     <div class="step-label"><div class="step-line"></div><span class="step-text">계산 상세</span></div>
     <h3 class="chart-title">공단 산식에 그대로 넣으면</h3>
-    <p class="chart-subtitle">기본연금액 = 비례상수 × (A값 + B값) × (가입월수 ÷ 240) ÷ 12. 가입 시기마다 비례상수(소득대체율)가 달라 가입월수로 가중평균합니다.</p>
+    <p class="chart-subtitle">기본연금액 = 비례상수 × (A값 + B값) × (가입월수 ÷ 240) ÷ 12 (1998년 이전 가입분은 A값 + 0.75 × B값). 가입 시기마다 비례상수(소득대체율)가 달라 가입월수로 가중평균합니다.</p>
     <div class="table-wrap" style="margin-top:0;">
       <table class="data-table detail-table">
         <tbody id="detail-body"></tbody>
@@ -1107,14 +1107,17 @@ function renderDetail(inp, res) {
   r(`가입월수 (P)${res.gap ? ` · 안 낸 ${res.gap}개월 뺌` : ''}`, `${Math.round(res.P).toLocaleString()}개월 (${res.yearsText})`);
   r('가입기간 배수 = 가입월수 ÷ 240', (res.P / 240).toFixed(3) + '배');
   r(`비례상수 (가입월수 가중평균) <span style="color:var(--ink-mute)">· 40년 기준 소득대체율 ${pct1(res.repEff)} 상당</span>`, res.alphaEff.toFixed(4));
-  r('기본연금액 (월) = 비례상수 × (A + B) × 배수 ÷ 12', won(res.base));
+  if (res.alphaBEff !== res.alphaEff) {
+    r('B값에 붙는 비례상수 <span style="color:var(--ink-mute)">· 1998년 이전 가입분은 비례상수 × 0.75</span>', res.alphaBEff.toFixed(4));
+    r('기본연금액 (월) = (비례상수 × A + B값 비례상수 × B) × 배수 ÷ 12', won(res.base));
+  } else r('기본연금액 (월) = 비례상수 × (A + B) × 배수 ÷ 12', won(res.base));
   r(`받는 시기 조정 · ${offLabel(SEL)}`, rateLabel(res.sel.rate) + (res.fam ? ' (부양가족연금 제외)' : ''));
   r('부양가족연금 (월)', res.fam ? won(res.fam) : '없음');
   r('상한: 조정한 연금 + 부양가족연금 ≤ B값 (법 제53조)', res.sel.capHit ? `<span style="color:var(--accent)">${won(res.sel.total)} → ${won(res.cap)}</span>` : '해당 없음');
   r('예상 월 연금 (10원 미만 버림)', won(res.sel.monthly), 'd-total');
   document.getElementById('detail-body').innerHTML = rows.join('');
   document.getElementById('group-body').innerHTML = res.groups.map(g =>
-    `<tr><td>${g.from === g.to ? g.from + '년' : g.from + '~' + g.to + '년'}</td><td>${g.alpha}</td><td>${pct1(g.replacement)}</td><td>${(Math.round(g.months * 10) / 10).toLocaleString()}개월</td></tr>`).join('');
+    `<tr><td>${g.from === g.to ? g.from + '년' : g.from + '~' + g.to + '년'}</td><td>${g.alpha}${g.alphaB !== g.alpha ? ' <span style="color:var(--ink-mute)">(B × 0.75)</span>' : ''}</td><td>${pct1(g.replacement)}</td><td>${(Math.round(g.months * 10) / 10).toLocaleString()}개월</td></tr>`).join('');
 }
 
 function renderOptions(inp, res) {
@@ -1299,12 +1302,13 @@ function renderNeed(inp, res) {
   else if (need > 0) notes.push(`입력한 생활비는 국민연금만으로 채워집니다.`);
   const annual = m * 12;
   const DEP = TR.NHIS.dependent.income, DEP_T = manTxt(DEP);   // 건보 피부양자 소득 기준 연 2,000만원
+  const DEP_NEAR = DEP * 0.75;   // 기준의 75%(연 1,500만원)부터 미리 안내 — 법정 기준이 아니라 이 계산기의 안내 시점
   if (annual > DEP) notes.push(`연 연금이 <b>${bigWon(annual)}</b>으로 ${DEP_T}을 넘습니다. 공적연금은 건보료 피부양자 소득 기준(연 ${DEP_T})에 들어가므로 피부양자 자격을 확인해 보세요.`);
-  else if (annual > 15000000) notes.push(`공적연금은 건보료 피부양자 소득 기준(연 ${DEP_T})에 들어갑니다. 다른 소득과 합쳐 ${DEP_T}을 넘는지 확인해 두세요.`);
+  else if (annual > DEP_NEAR) notes.push(`공적연금은 건보료 피부양자 소득 기준(연 ${DEP_T})에 들어갑니다. 다른 소득과 합쳐 ${DEP_T}을 넘는지 확인해 두세요.`);
   document.getElementById('need-note').innerHTML = notes.join('<br>');
   const links = [];
   if (rest > 0) links.push(`<a class="btn" href="${retireUrl(inp, res)}" target="_blank" rel="noopener">나머지 월 ${manShort(rest)} → 은퇴 역산 계산기</a>`);
-  if (annual > 15000000) links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/fin-income-tax/?t=dep&dp=${Math.round(annual / 10000)}" target="_blank" rel="noopener">건보료 피부양자 확인 →</a>`);
+  if (annual > DEP_NEAR) links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/fin-income-tax/?t=dep&dp=${Math.round(annual / 10000)}" target="_blank" rel="noopener">건보료 피부양자 확인 →</a>`);
   links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/pension-tax-sim/" target="_blank" rel="noopener">연금저축·IRP 인출 세금 →</a>`);
   document.getElementById('next-links').innerHTML = links.join('');
   document.getElementById('cta-retire').href = rest > 0 ? retireUrl(inp, res) : 'https://ttokjaetv.github.io/retirement/';

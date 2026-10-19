@@ -72,6 +72,24 @@ ok(E.npsPremiumRate(2025) === 0.09 && E.npsPremiumRate(2026) === 0.095 && E.npsP
 ok(E.npsChunapRate(2026, 10) === 0.095 && E.npsChunapRate(2026, 12) === 0.1 && E.npsChunapRate(2026, 12, true) === 0.095 && E.npsChunapRate(2032, 12) === 0.13, '추납 납부기한 달 요율');
 ok(E.npsChunap(base, { months: 36, B: 3000000, appYear: 2026, appMonth: 12 }).premium === 300000, '12월 신청 추납 = 다음 해 10%');
 
+// 1998년 이전 가입분은 2.4 × (A + 0.75B) (국민연금법 부칙 1998.12.31.), 1999년부터 α × (A + B)
+//  손계산: 1990~1998 9년(2.4, B×0.75) + 1999~2007 9년(1.8) + 2008 1.5 + 2009~2025 17년(1.485 → 1.245)
+{
+  const A = 3193511, B = 3000000, al = y => y <= 1998 ? 2.4 : y <= 2007 ? 1.8 : y === 2008 ? 1.5 : 1.5 - 0.015 * (y - 2008);
+  let sum = 0;
+  for (let y = 1990; y <= 2025; y++) sum += al(y) * (A + (y <= 1998 ? 0.75 : 1) * B) * 12;
+  const want = sum / 240 / 12, got = E.npsCalc({ birth: 1965, startYear: 1990, endYear: 2025, B }).base;
+  ok(Math.abs(got - want) < 1, '1998년 이전 가입분 B×0.75 (기본연금액 ' + Math.round(got) + ' ≈ ' + Math.round(want) + ')');
+  const r2 = E.npsCalc({ birth: 1965, startYear: 1990, endYear: 2025, B });
+  ok(Math.abs(E.npsSolveB({ birth: 1965, startYear: 1990, endYear: 2025 }, r2.normal) - B) < 100, 'B값 역산 (1998년 이전 가입분 포함)');
+}
+// 40년 기준 소득대체율 표시: 2.4(1998년 이전) 70% · 1.8 60% · 1.5 50% · 1.29 43%
+ok(E.npsReplacement(2.4, 2.4 * 0.75) === 70 && E.npsReplacement(1.8) === 60 && E.npsReplacement(1.5) === 50 && E.npsReplacement(1.29) === 43, '소득대체율 표시 70/60/50/43%');
+{
+  const g = E.npsCalc({ birth: 1965, startYear: 1990, endYear: 2026, B: 3000000 }).groups.map(x => x.replacement);
+  ok(g[0] === 70 && g[1] === 60 && g[2] === 50 && g[g.length - 1] === 43, '가입 기간별 소득대체율 ' + g.join('/'));
+}
+
 const f = E.npsBaseMonthly(1.296, 3193511, 3500000, 480);
 console.log('firework 대조(비례상수 1.296 가정):', Math.round(f), '원 (firework 표시 1,445,380원)');
 process.exit(bad ? 1 : 0);
