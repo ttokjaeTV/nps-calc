@@ -33,9 +33,8 @@ function npsAlpha(year) {
   return T[last];
 }
 // 1998년 이전 가입분은 B값을 0.75만 반영: 2.4 × (A + 0.75B)  (국민연금법 부칙(1998.12.31.), 1999년부터 α(A + B))
-//  TODO rules.js 다음 버전에 NPS 키로 옮길 것 (v2026.1에는 없음)
-const NPS_B_WEIGHT_UNTIL = 1998, NPS_B_WEIGHT_OLD = 0.75;
-const npsBWeight = year => year <= NPS_B_WEIGHT_UNTIL ? NPS_B_WEIGHT_OLD : 1;
+//  rules.js NPS.bWeightUntilYear(1998)·bWeightOld(0.75), v2026.2부터
+const npsBWeight = year => year <= TR.NPS.bWeightUntilYear ? TR.NPS.bWeightOld : 1;
 // 비례상수 → 그 해 가입분의 소득대체율(40년 가입, A값 = B값 기준, %)
 //  40년이면 월액 = (αA + αwB) × 2 ÷ 12 → B = A일 때 α(1 + w) ÷ 6
 //  1988~1998 2.4 → 70% · 1999~2007 1.8 → 60% · 2008 1.5 → 50% · 2026~ 1.29 → 43%

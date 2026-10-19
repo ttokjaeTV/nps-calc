@@ -599,7 +599,7 @@
         <div class="inflation-body" id="inf-body">
           <label class="label" for="inflation">물가상승률 (연)</label>
           <div class="input-wrap">
-            <input type="number" id="inflation" data-unit="%" value="2.5" step="0.1" min="0" max="10" inputmode="decimal">
+            <input type="number" id="inflation" data-unit="%" value="2.5" step="0.1" min="0" max="10" inputmode="decimal"> <!-- rules-ok: 물가 가정 기본값(제도 아님) -->
             <span class="input-currency" id="inflation-display">-</span>
           </div>
         </div>
@@ -625,7 +625,7 @@
   <div class="card" id="detail-card">
     <div class="step-label"><div class="step-line"></div><span class="step-text">계산 상세</span></div>
     <h3 class="chart-title">공단 산식에 그대로 넣으면</h3>
-    <p class="chart-subtitle">기본연금액 = 비례상수 × (A값 + B값) × (가입월수 ÷ 240) ÷ 12 (1998년 이전 가입분은 A값 + 0.75 × B값). 가입 시기마다 비례상수(소득대체율)가 달라 가입월수로 가중평균합니다.</p>
+    <p class="chart-subtitle">기본연금액 = 비례상수 × (A값 + B값) × (가입월수 ÷ 240) ÷ 12 (<span data-rule="NPS.bWeightUntilYear" data-fmt="i">1998</span>년 이전 가입분은 A값 + <span data-rule="NPS.bWeightOld">0.75</span> × B값). 가입 시기마다 비례상수(소득대체율)가 달라 가입월수로 가중평균합니다.</p>
     <div class="table-wrap" style="margin-top:0;">
       <table class="data-table detail-table">
         <tbody id="detail-body"></tbody>
@@ -836,7 +836,7 @@
   </footer>
 </div>
 
-<script src="https://ttokjaetv.github.io/rules/v2026.1/rules.js"></script>
+<script src="https://ttokjaetv.github.io/rules/v2026.2/rules.js"></script>
 <script src="https://ttokjaetv.github.io/rules/fill-v1.js"></script>
 <script>
 if (!window.TTOKJAE_RULES) {
@@ -960,9 +960,8 @@ function npsAlpha(year) {
   return T[last];
 }
 // 1998년 이전 가입분은 B값을 0.75만 반영: 2.4 × (A + 0.75B)  (국민연금법 부칙(1998.12.31.), 1999년부터 α(A + B))
-//  TODO rules.js 다음 버전에 NPS 키로 옮길 것 (v2026.1에는 없음)
-const NPS_B_WEIGHT_UNTIL = 1998, NPS_B_WEIGHT_OLD = 0.75;
-const npsBWeight = year => year <= NPS_B_WEIGHT_UNTIL ? NPS_B_WEIGHT_OLD : 1;
+//  rules.js NPS.bWeightUntilYear(1998)·bWeightOld(0.75), v2026.2부터
+const npsBWeight = year => year <= TR.NPS.bWeightUntilYear ? TR.NPS.bWeightOld : 1;
 // 비례상수 → 그 해 가입분의 소득대체율(40년 가입, A값 = B값 기준, %)
 //  40년이면 월액 = (αA + αwB) × 2 ÷ 12 → B = A일 때 α(1 + w) ÷ 6
 //  1988~1998 2.4 → 70% · 1999~2007 1.8 → 60% · 2008 1.5 → 50% · 2026~ 1.29 → 43%
@@ -1353,7 +1352,7 @@ function renderDetail(inp, res) {
   r('가입기간 배수 = 가입월수 ÷ 240', (res.P / 240).toFixed(3) + '배');
   r(`비례상수 (가입월수 가중평균) <span style="color:var(--ink-mute)">· 40년 기준 소득대체율 ${pct1(res.repEff)} 상당</span>`, res.alphaEff.toFixed(4));
   if (res.alphaBEff !== res.alphaEff) {
-    r('B값에 붙는 비례상수 <span style="color:var(--ink-mute)">· 1998년 이전 가입분은 비례상수 × 0.75</span>', res.alphaBEff.toFixed(4));
+    r('B값에 붙는 비례상수 <span style="color:var(--ink-mute)">· ' + TR.NPS.bWeightUntilYear + '년 이전 가입분은 비례상수 × ' + TR.NPS.bWeightOld + '</span>', res.alphaBEff.toFixed(4));
     r('기본연금액 (월) = (비례상수 × A + B값 비례상수 × B) × 배수 ÷ 12', won(res.base));
   } else r('기본연금액 (월) = 비례상수 × (A + B) × 배수 ÷ 12', won(res.base));
   r(`받는 시기 조정 · ${offLabel(SEL)}`, rateLabel(res.sel.rate) + (res.fam ? ' (부양가족연금 제외)' : ''));
@@ -1362,7 +1361,7 @@ function renderDetail(inp, res) {
   r('예상 월 연금 (10원 미만 버림)', won(res.sel.monthly), 'd-total');
   document.getElementById('detail-body').innerHTML = rows.join('');
   document.getElementById('group-body').innerHTML = res.groups.map(g =>
-    `<tr><td>${g.from === g.to ? g.from + '년' : g.from + '~' + g.to + '년'}</td><td>${g.alpha}${g.alphaB !== g.alpha ? ' <span style="color:var(--ink-mute)">(B × 0.75)</span>' : ''}</td><td>${pct1(g.replacement)}</td><td>${(Math.round(g.months * 10) / 10).toLocaleString()}개월</td></tr>`).join('');
+    `<tr><td>${g.from === g.to ? g.from + '년' : g.from + '~' + g.to + '년'}</td><td>${g.alpha}${g.alphaB !== g.alpha ? ' <span style="color:var(--ink-mute)">(B × ' + TR.NPS.bWeightOld + ')</span>' : ''}</td><td>${pct1(g.replacement)}</td><td>${(Math.round(g.months * 10) / 10).toLocaleString()}개월</td></tr>`).join('');
 }
 
 function renderOptions(inp, res) {
