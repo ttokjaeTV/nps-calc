@@ -4,44 +4,47 @@
 //   지급률: 가입 10년 50%, 1개월마다 5/12%씩 증가 → 20년 100%. n = 20년 초과 가입월수.
 //   두 식을 합치면 가입기간 요소 = P / 240 (10년 0.5 · 20년 1 · 40년 2) 로 정확히 같아진다.
 // 공단 '노령연금 예상월액표'(2026년 7월 상·하한액 반영, 620개 소득 × 7개 기간)와 원 단위까지 대조 (src/test.js)
+// 제도 숫자는 공용 기준 파일 rules.js(전역 TTOKJAE_RULES)에서 읽는다
+const TR = TTOKJAE_RULES;
 const NPS = {
-  A: 3193511,            // 2026년 적용 A값 (전체 가입자 평균소득월액)
-  A_YEAR: 2026,
-  B_MIN: 410000,         // 기준소득월액 하한 (2026-07 ~ 2027-06)
-  B_MAX: 6590000,        // 기준소득월액 상한 (2026-07 ~ 2027-06)
-  SPOUSE: 25550,         // 부양가족연금 배우자 월액 (연 306,630원)
-  DEPENDENT: 17030,      // 부양가족연금 자녀·부모 월액 (연 204,360원)
-  EARLY_PER_YEAR: 0.06,  // 조기노령연금: 1년 앞당길 때마다 6%(월 0.5%) 감액, 최대 5년
-  DELAY_PER_YEAR: 0.072, // 연기연금: 1년 늦출 때마다 7.2%(월 0.6%) 가산, 최대 5년
-  MIN_MONTHS: 120,       // 노령연금 최소 가입기간 10년
-  MAX_CHUNAP: 119,       // 추납 최대 119개월 (10년 미만, 군복무 포함)
-  RATE_2026: 0.095,      // 2026년 연금보험료율 (2033년 13%까지 매년 0.5%p 인상, npsPremiumRate)
-  FIRST_YEAR: 1988,      // 국민연금 시행
+  A: TR.NPS.A,                                   // 2026년 적용 A값 (전체 가입자 평균소득월액)
+  A_YEAR: TR.NPS.aYear,
+  B_MIN: TR.NPS.incomeFloorMonthly,              // 기준소득월액 하한 (2026-07 ~ 2027-06)
+  B_MAX: TR.NPS.incomeCapMonthly,                // 기준소득월액 상한 (2026-07 ~ 2027-06)
+  SPOUSE: TR.NPS.familyBenefitSpouseMonthly,     // 부양가족연금 배우자 월액 (연 306,630원)
+  DEPENDENT: TR.NPS.familyBenefitOtherMonthly,   // 부양가족연금 자녀·부모 월액 (연 204,360원)
+  EARLY_PER_YEAR: TR.NPS.earlyReductionPerYear,  // 조기노령연금: 1년 앞당길 때마다 6%(월 0.5%) 감액, 최대 5년
+  DELAY_PER_YEAR: TR.NPS.deferralBonusPerYear,   // 연기연금: 1년 늦출 때마다 7.2%(월 0.6%) 가산, 최대 5년
+  MAX_EARLY: TR.NPS.maxEarlyYears,               // 조기 최대 5년
+  MAX_DELAY: TR.NPS.maxDeferralYears,            // 연기 최대 5년
+  MIN_MONTHS: TR.NPS.minMonths,                  // 노령연금 최소 가입기간 10년
+  MAX_CHUNAP: TR.NPS.maxChunapMonths,            // 추납 최대 119개월 (10년 미만, 군복무 포함)
+  RATE_2026: TR.NPS.premiumRateByYear[2026],     // 2026년 연금보험료율 (2033년 13%까지 매년 0.5%p 인상, npsPremiumRate)
+  FIRST_YEAR: TR.NPS.firstYear,                  // 국민연금 시행
 };
 
 // 가입연도별 비례상수 (소득대체율 ÷ 40년 × 2 와 같은 값)
 // 1988~1998 70%(2.4) · 1999~2007 60%(1.8) · 2008 50%(1.5) · 2009~2025 매년 0.015씩 감소(2025 1.245) · 2026~ 43%(1.29)
+//  값은 rules.js NPS.alphaByYear (1988~2026). 표보다 앞선 해는 첫 해 값, 뒤의 해는 마지막 해 값
 function npsAlpha(year) {
-  if (year <= 1998) return 2.4;
-  if (year <= 2007) return 1.8;
-  if (year <= 2025) return Math.round((1.5 - 0.015 * (year - 2008)) * 1000) / 1000;
-  return 1.29;
+  const T = TR.NPS.alphaByYear, ys = Object.keys(T), first = +ys[0], last = +ys[ys.length - 1];
+  if (year <= first) return T[first];
+  if (year in T) return T[year];
+  return T[last];
 }
-// 비례상수 → 그 해 가입분의 소득대체율(40년 가입 기준, %)
+// 비례상수 → 그 해 가입분의 소득대체율(40년 가입 기준, %)  (비례상수 2.4 = 소득대체율 70%)
 const npsReplacement = alpha => Math.round(alpha / 2.4 * 70 * 10) / 10;
 
 // 출생연도별 노령연금 수급개시연령
+//  rules.js NPS.startAgeByBirthYear: [출생연도 상한, 나이] — 출생연도 ≤ 상한인 첫 행
 function npsStartAge(birth) {
-  if (birth <= 1952) return 60;
-  if (birth <= 1956) return 61;
-  if (birth <= 1960) return 62;
-  if (birth <= 1964) return 63;
-  if (birth <= 1968) return 64;
-  return 65;
+  const T = TR.NPS.startAgeByBirthYear;
+  for (const [lim, age] of T) if (birth <= lim) return age;
+  return T[T.length - 1][1];
 }
 
 // 공단 예상월액표는 10원 미만을 버린다
-const floor10 = x => Math.floor(x / 10 + 1e-9) * 10;
+const floor10 = x => Math.floor(x / TR.NPS.truncUnit + 1e-9) * TR.NPS.truncUnit;
 
 // 핵심 계산 (월 기본연금액, 정상 수급 기준)
 //  alphaEff: 가입월수로 가중평균한 비례상수, P: 전체 가입월수, B: 원
@@ -50,10 +53,12 @@ function npsBaseMonthly(alphaEff, A, B, P) {
 }
 
 // 연도별 연금보험료율 (법률 제20903호 부칙 제4조: 2026년 9.5%부터 매년 0.5%p 올라 2032년 12.5%, 2033년부터 13%)
+//  rules.js NPS.premiumRateByYear (2025~2033). 표보다 앞선 해는 첫 해 값, 뒤의 해는 마지막 해 값
 function npsPremiumRate(year) {
-  if (year <= 2025) return 0.09;
-  if (year >= 2033) return 0.13;
-  return (95 + 5 * (year - 2026)) / 1000;
+  const T = TR.NPS.premiumRateByYear, ys = Object.keys(T), first = +ys[0], last = +ys[ys.length - 1];
+  if (year <= first) return T[first];
+  if (year >= last) return T[last];
+  return T[year];
 }
 
 // 추납 보험료율 = 납부기한이 속하는 달의 보험료율 (국민연금법 제92조③, 2025.11.25 개정)
@@ -73,8 +78,8 @@ function npsPayable(base, fam, rate, cap) {
 
 // 수급 시기 조정률 (offset: −5 ~ +5년, 음수 = 조기)
 function npsTimingRate(offset) {
-  if (offset < 0) return 1 - NPS.EARLY_PER_YEAR * Math.min(5, -offset);
-  if (offset > 0) return 1 + NPS.DELAY_PER_YEAR * Math.min(5, offset);
+  if (offset < 0) return 1 - NPS.EARLY_PER_YEAR * Math.min(NPS.MAX_EARLY, -offset);
+  if (offset > 0) return 1 + NPS.DELAY_PER_YEAR * Math.min(NPS.MAX_DELAY, offset);
   return 1;
 }
 
@@ -84,7 +89,7 @@ function npsCalc(o) {
   const res = { ok: false, warnings: [] };
   const birth = Math.round(o.birth), sy = Math.round(o.startYear), ey = Math.round(o.endYear);
   if (!(birth >= 1930 && birth <= 2010)) { res.error = '출생연도를 확인해 주세요 (1930~2010년).'; return res; }
-  if (!(sy >= NPS.FIRST_YEAR)) { res.error = '국민연금은 1988년에 시작했습니다. 가입 시작연도를 1988년 이후로 넣어 주세요.'; return res; }
+  if (!(sy >= NPS.FIRST_YEAR)) { res.error = '국민연금은 ' + NPS.FIRST_YEAR + '년에 시작했습니다. 가입 시작연도를 ' + NPS.FIRST_YEAR + '년 이후로 넣어 주세요.'; return res; }
   if (!(ey >= sy)) { res.error = '가입 종료연도가 시작연도보다 빠릅니다.'; return res; }
 
   // 가입연도별 월수 (각 해 1~12월 전부 가입으로 보고, 안 낸 기간은 전체에서 고르게 뺀다)
@@ -146,13 +151,13 @@ function npsCalc(o) {
   //  상한은 조기·연기 조정과 부양가족연금을 더한 뒤 맨 마지막에 적용 (연기가산분 예외 여부는 공단 실무 확인 필요)
   const cap = floor10(B);
   const options = [];
-  for (let k = -5; k <= 5; k++) {
+  for (let k = -NPS.MAX_EARLY; k <= NPS.MAX_DELAY; k++) {
     const rate = npsTimingRate(k);
     const p = npsPayable(base, fam, rate, cap);
     options.push({ offset: k, age: startAge + k, year: birth + startAge + k, rate, monthly: p.monthly, total: p.total, capHit: p.capHit });
   }
-  Object.assign(res, { ok: true, base, fam, cap, capHit: options[5].capHit, options,
-    normal: options[5].monthly });
+  Object.assign(res, { ok: true, base, fam, cap, capHit: options[NPS.MAX_EARLY].capHit, options,
+    normal: options[NPS.MAX_EARLY].monthly });
   return res;
 }
 
@@ -170,7 +175,7 @@ function monthsText(m) {
 // 부양가족연금은 조정되지 않고 상한(B값)도 있으므로 실제 월액으로 직접 푼다. 상한에 걸려 월액이 같으면 null
 function npsBreakEven(res, offset) {
   if (!res.ok || res.short || offset === 0) return null;
-  const S = res.startAge, Mn = res.normal, Mo = res.options[offset + 5].monthly;
+  const S = res.startAge, Mn = res.normal, Mo = res.options[offset + NPS.MAX_EARLY].monthly;
   const so = S + offset;
   // Mo × (x − so) = Mn × (x − S)  →  x = (Mo·so − Mn·S) / (Mo − Mn)
   if (Mo === Mn) return null;
@@ -180,7 +185,7 @@ function npsBreakEven(res, offset) {
 // 나이별 누적 수령액 (오늘 돈 가치, 원). 연금은 매년 물가만큼 오르므로 실질 월액은 일정하다고 본다
 function npsCumulative(res, offset, age) {
   if (!res.ok || res.short) return 0;
-  const o = res.options[offset + 5];
+  const o = res.options[offset + NPS.MAX_EARLY];
   const yrs = Math.max(0, age - o.age);
   return o.monthly * 12 * yrs;
 }
@@ -202,9 +207,9 @@ function npsChunap(o, c) {
   const premium = floor10(xB * rate);               // 월 연금보험료 (10원 미만 버림)
   const cost = premium * months;
   const after = npsCalc(Object.assign({}, o, { extraMonths: months, extraB: xB, voluntary: c.voluntary }));
-  const off = Math.max(-5, Math.min(5, Math.round(c.offset || 0)));
-  const mBefore = before.ok && !before.short ? before.options[off + 5].monthly : 0;
-  const mAfter = after.ok && !after.short ? after.options[off + 5].monthly : 0;
+  const off = Math.max(-NPS.MAX_EARLY, Math.min(NPS.MAX_DELAY, Math.round(c.offset || 0)));
+  const mBefore = before.ok && !before.short ? before.options[off + NPS.MAX_EARLY].monthly : 0;
+  const mAfter = after.ok && !after.short ? after.options[off + NPS.MAX_EARLY].monthly : 0;
   const delta = mAfter - mBefore;
   const startAge = after.ok ? after.startAge + off : null;
   const paybackMonths = delta > 0 ? cost / delta : Infinity;

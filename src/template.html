@@ -524,10 +524,10 @@
           <div class="chips" data-target="income">
             <button class="chip" data-v="200">200만</button>
             <button class="chip" data-v="300">300만</button>
-            <button class="chip" data-v="319">평균(A값) 319만</button>
+            <button class="chip" data-rule="A">평균(A값) 319만</button>
             <button class="chip" data-v="400">400만</button>
             <button class="chip" data-v="500">500만</button>
-            <button class="chip" data-v="659">상한 659만</button>
+            <button class="chip" data-rule="B_MAX">상한 659만</button>
           </div>
           <div class="input-hint">보험료를 매기는 기준소득월액의 평균입니다. 직장인은 비과세(식대 등)를 뺀 세전 월급, 지역가입자는 신고한 소득. 예전 소득은 <b>오늘 돈 가치로 환산</b>해 평균을 내세요 (공단도 과거 소득을 재평가해 계산합니다).</div>
           <div class="input-hint" id="premium-hint">-</div>
@@ -702,9 +702,9 @@
             <span class="input-currency" id="cb-display">-</span>
           </div>
           <div class="chips" data-target="cb">
-            <button class="chip" data-v="41">하한 41만</button>
+            <button class="chip" data-rule="B_MIN">하한 41만</button>
             <button class="chip" data-v="100">100만</button>
-            <button class="chip" data-v="319">A값 319만</button>
+            <button class="chip" data-rule="A">A값 319만</button>
           </div>
           <div class="input-hint">직장·지역가입자는 지금 보험료 기준 소득, 소득 없이 임의가입했다면 본인이 정한 소득(최저 41만원)</div>
         </div>
@@ -836,7 +836,14 @@
   </footer>
 </div>
 
+<script src="https://ttokjaetv.github.io/rules/v2026.1/rules.js"></script>
 <script>
+if (!window.TTOKJAE_RULES) {
+  var TJR_MSG = '기준값 파일(rules.js)을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.';
+  var tjrShow = function () { document.body.insertAdjacentHTML('afterbegin', '<div role="alert" style="background:#fdecea;color:#b3261e;padding:12px 16px;text-align:center;font-weight:600">' + TJR_MSG + '</div>'); };
+  document.body ? tjrShow() : document.addEventListener('DOMContentLoaded', tjrShow);
+  throw new Error(TJR_MSG);
+}
 // ============== 표 내려받기 (CSV · 엑셀 .xlsx) — 외부 라이브러리 없이 동작 ==============
 // TJX.csv('파일이름', rows) · TJX.xlsx('파일이름', [{ name: '시트', rows, widths }])
 // rows = [[머리글...], [값...], ...]  숫자는 숫자 그대로 넣으면 엑셀에서 계산 가능한 숫자 칸이 됩니다
@@ -919,6 +926,14 @@ const TJX = (() => {
 
 /*__ENGINE__*/
 
+// ============== 제도 값 (rules.js → 엔진의 NPS·TR) ==============
+const MIN_Y = NPS.MIN_MONTHS / 12;                       // 최소 가입기간(년)
+const RATE_NOW = npsAlpha(NPS.A_YEAR);                    // 2026년 이후 가입분 비례상수
+const manTxt = v => String(v / 1e4).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '만원';   // 20000000 → '2,000만원'
+// 선택 칩 값: A값(만원 반올림)·기준소득월액 상·하한(만원)
+const RULE_CHIP = { A: Math.round(NPS.A / 1e4), B_MAX: NPS.B_MAX / 1e4, B_MIN: NPS.B_MIN / 1e4 };
+document.querySelectorAll('.chip[data-rule]').forEach(c => { c.dataset.v = String(RULE_CHIP[c.dataset.rule]); });
+
 // ============== 포맷 ==============
 const NOW_YEAR = NPS.A_YEAR;   // 계산 기준 연도 (A값 연도와 같게 고정)
 const won = n => Math.round(n).toLocaleString() + '원';
@@ -954,7 +969,7 @@ function readInputs() {
     B: (v('income') || 0) * 10000,
     spouse: document.getElementById('spouse').checked, dependents: Math.max(0, Math.min(10, Math.round(v('dep') || 0))),
     plan: Math.max(60, Math.min(110, Math.round(v('plan') || 90))),
-    infOn, inflation: infOn ? Math.max(0, Math.min(10, isFinite(v('inflation')) ? v('inflation') : 2.5)) / 100 : 0,
+    infOn, inflation: infOn ? Math.max(0, Math.min(10, isFinite(v('inflation')) ? v('inflation') : TR.MARKET_DEFAULTS.inflation * 100)) / 100 : 0,
     need: Math.max(0, v('need') || 0) * 10000,
     cm: Math.max(0, Math.round(v('cm') || 0)),   // 119개월·안 낸 기간 상한은 npsChunap에서 (넘으면 추납 칸에 안내)
     cb: Math.max(0, v('cb') || 0) * 10000,
@@ -965,7 +980,7 @@ function readInputs() {
 function compute(inp) {
   const res = npsCalc(inp);
   if (!res.ok || res.short) return res;
-  const sel = res.options[SEL + 5];
+  const sel = res.options[SEL + NPS.MAX_EARLY];
   res.sel = sel;
   res.cumAt = (k, age) => npsCumulative(res, k, age);
   res.be = k => npsBreakEven(res, k);
@@ -1023,8 +1038,8 @@ function renderSummary(inp, res) {
     ` · 정상 수급 <b>만 ${S}세</b>(${inp.birth + S}년부터) · ${NOW_YEAR}년 기준 <b>만 ${NOW_YEAR - inp.birth - 1}~${NOW_YEAR - inp.birth}세</b>(생일 전후)`;
   const w = res.warnings;
   const warn = [];
-  if (w.includes('bmin')) warn.push(`평균 소득이 기준소득월액 하한보다 낮아 41만원으로 계산했습니다.`);
-  if (w.includes('bmax')) warn.push(`평균 소득이 기준소득월액 상한(659만원)보다 높아 659만원으로 계산했습니다. 보험료도 연금도 상한까지만 반영됩니다.`);
+  if (w.includes('bmin')) warn.push(`평균 소득이 기준소득월액 하한보다 낮아 ${NPS.B_MIN / 1e4}만원으로 계산했습니다.`);
+  if (w.includes('bmax')) warn.push(`평균 소득이 기준소득월액 상한(${NPS.B_MAX / 1e4}만원)보다 높아 ${NPS.B_MAX / 1e4}만원으로 계산했습니다. 보험료도 연금도 상한까지만 반영됩니다.`);
   if (w.includes('young')) warn.push(`만 18세 전 가입은 직장에 다닌 경우 등 일부만 해당합니다.`);
   if (w.includes('voluntary')) warn.push(`만 60세 이후 기간은 의무가입이 아니라 '임의계속가입'(본인이 신청해 보험료 전액 부담)으로 낼 때만 인정됩니다.`);
   if (w.includes('pastStart')) warn.push(`가입 종료연도가 수급 시작 연도와 겹칩니다. 연금을 받기 시작한 뒤에는 보험료를 내지 않으니 종료연도를 확인해 주세요.`);
@@ -1037,7 +1052,7 @@ function renderTiming(inp, res) {
   const box = document.getElementById('timing-chips');
   const S = res.ok ? res.startAge : npsStartAge(Math.round(inp.birth) || 1972);
   let h = '';
-  for (let k = -5; k <= 5; k++) {
+  for (let k = -NPS.MAX_EARLY; k <= NPS.MAX_DELAY; k++) {
     const r = npsTimingRate(k);
     h += `<button type="button" class="timing-chip${k === 0 ? ' normal' : ''}${k === SEL ? ' on' : ''}" data-k="${k}">` +
       `<span class="tc-k">${offLabel(k)}</span><span class="tc-age">${S + k}세</span>` +
@@ -1045,8 +1060,8 @@ function renderTiming(inp, res) {
   }
   box.innerHTML = h;
   const hint = document.getElementById('timing-hint');
-  if (SEL < 0) hint.innerHTML = `조기노령연금은 <b>가입 10년 이상</b>이고 <b>A값(월 약 319만원)을 넘는 소득이 없을 때</b>만 받을 수 있습니다. 한 번 감액되면 평생 그대로입니다.`;
-  else if (SEL > 0) hint.innerHTML = `연기연금은 정상 수급 나이에 신청해 최대 5년까지 늦출 수 있고, 일부(50~90%)만 늦추는 것도 가능합니다. 이 계산기는 전액 연기 기준입니다.`;
+  if (SEL < 0) hint.innerHTML = `조기노령연금은 <b>가입 ${MIN_Y}년 이상</b>이고 <b>A값(월 약 ${Math.round(NPS.A / 1e4)}만원)을 넘는 소득이 없을 때</b>만 받을 수 있습니다. 한 번 감액되면 평생 그대로입니다.`;
+  else if (SEL > 0) hint.innerHTML = `연기연금은 정상 수급 나이에 신청해 최대 ${NPS.MAX_DELAY}년까지 늦출 수 있고, 일부(50~90%)만 늦추는 것도 가능합니다. 이 계산기는 전액 연기 기준입니다.`;
   else hint.innerHTML = `출생연도 ${Math.round(inp.birth) || '-'}년생의 정상 수급 나이는 <b>만 ${S}세</b>입니다.`;
 }
 
@@ -1054,7 +1069,7 @@ function renderVerdict(inp, res) {
   const L = document.getElementById('verdict-label'), M = document.getElementById('verdict-main'), Sb = document.getElementById('verdict-sub');
   if (res.short) {
     L.textContent = '아직 받을 수 없어요';
-    M.innerHTML = `가입기간 <span class="hl">${res.yearsText}</span> — 노령연금은 최소 10년(120개월)을 채워야 나옵니다`;
+    M.innerHTML = `가입기간 <span class="hl">${res.yearsText}</span> — 노령연금은 최소 ${MIN_Y}년(${NPS.MIN_MONTHS}개월)을 채워야 나옵니다`;
     Sb.innerHTML = `<strong>${monthsText(res.need)}</strong>을 더 채우면 매달 연금을 받을 수 있습니다. 못 채우면 낸 보험료에 이자를 더한 <strong>반환일시금</strong>으로 받습니다. ` +
       `가입 종료연도를 늘리거나, 60세 이후 임의계속가입·추후납부로 기간을 늘린 경우를 넣어 보세요.`;
     return;
@@ -1062,7 +1077,7 @@ function renderVerdict(inp, res) {
   const sel = res.sel;
   L.textContent = `예상 국민연금 · ${offLabel(SEL)}${SEL ? ' 수급' : ' 수급'}`;
   M.innerHTML = `만 ${sel.age}세(${sel.year}년)부터 매달 <span class="hl">${wonMan(sel.monthly)}</span>`;
-  let sub = `${Math.round(inp.birth)}년생 · 가입 ${res.yearsText} · 평균 월소득 ${formatManwon(Math.round(res.B / 10000))} 기준, <strong>오늘 돈 가치</strong>(2026년 A값)로 계산했습니다.`;
+  let sub = `${Math.round(inp.birth)}년생 · 가입 ${res.yearsText} · 평균 월소득 ${formatManwon(Math.round(res.B / 10000))} 기준, <strong>오늘 돈 가치</strong>(${NPS.A_YEAR}년 A값)로 계산했습니다.`;
   if (inp.infOn && res.nomYears > 0) sub += ` 연금은 매년 물가만큼 오르니, 물가 ${pct1(inp.inflation * 100)}를 가정하면 받기 시작하는 ${sel.year}년엔 <strong>월 약 ${manShort(res.nominal)}</strong>이 통장에 찍힙니다.`;
   if (sel.capHit) sub += ` <br>※ 매달 받는 금액(부양가족연금 포함)은 평균 소득(B값)을 넘을 수 없다는 상한(국민연금법 제53조)에 걸려 ${won(res.cap)}으로 맞췄습니다. 상한은 조기·연기 조정과 부양가족연금을 더한 총액에 적용했고, 공단 실무는 다를 수 있습니다.`;
   Sb.innerHTML = sub;
@@ -1087,7 +1102,7 @@ function renderStats(inp, res) {
 function renderDetail(inp, res) {
   const rows = [];
   const r = (k, v, cls) => rows.push(`<tr${cls ? ` class="${cls}"` : ''}><td>${k}</td><td class="d-v">${v}</td></tr>`);
-  r('A값 · 전체 가입자 평균소득월액 (2026년 적용)', won(res.A));
+  r('A값 · 전체 가입자 평균소득월액 (' + NPS.A_YEAR + '년 적용)', won(res.A));
   r('B값 · 내 평균 월소득' + (res.Braw !== res.B ? ` <span style="color:var(--accent)">(입력 ${won(res.Braw)} → 상·하한 적용)</span>` : ''), won(res.B));
   r(`가입월수 (P)${res.gap ? ` · 안 낸 ${res.gap}개월 뺌` : ''}`, `${Math.round(res.P).toLocaleString()}개월 (${res.yearsText})`);
   r('가입기간 배수 = 가입월수 ÷ 240', (res.P / 240).toFixed(3) + '배');
@@ -1198,15 +1213,15 @@ const bePlugin = {
 
 let cumChart = null;
 function chartOffsets() {
-  const ks = [-5, 0, 5];
+  const ks = [-NPS.MAX_EARLY, 0, NPS.MAX_DELAY];
   if (!ks.includes(SEL)) ks.push(SEL);
   return ks.sort((a, b) => a - b);
 }
-const SERIES_COLOR = k => k === 0 ? '#3A2F26' : k === -5 ? '#2E5E8A' : k === 5 ? '#D9542B' : '#C4A57B';
+const SERIES_COLOR = k => k === 0 ? '#3A2F26' : k === -NPS.MAX_EARLY ? '#2E5E8A' : k === NPS.MAX_DELAY ? '#D9542B' : '#C4A57B';
 
 function drawChart(inp, res) {
   const S = res.startAge;
-  const x0 = S - 5, x1 = Math.max(inp.plan, S + 6);
+  const x0 = S - NPS.MAX_EARLY, x1 = Math.max(inp.plan, S + NPS.MAX_DELAY + 1);
   const ks = chartOffsets();
   const datasets = ks.map(k => {
     const data = [];
@@ -1220,12 +1235,12 @@ function drawChart(inp, res) {
   const marks = [];
   ks.filter(k => k !== 0).forEach(k => {
     const be = res.be(k);
-    if (be && be <= x1) marks.push({ age: be, value: res.options[5].monthly * 12 * (be - S), color: SERIES_COLOR(k), text: `${offLabel(k)} ↔ 정상 ${ageTxt(be)}`, short: `${(Math.round(be * 10) / 10).toFixed(1)}세` });
+    if (be && be <= x1) marks.push({ age: be, value: res.options[NPS.MAX_EARLY].monthly * 12 * (be - S), color: SERIES_COLOR(k), text: `${offLabel(k)} ↔ 정상 ${ageTxt(be)}`, short: `${(Math.round(be * 10) / 10).toFixed(1)}세` });
   });
   const sub = [];
-  const beE = res.be(-5), beD = res.be(5);
-  if (beE && beD) sub.push(`조기 5년은 <b>${ageTxt(beE)}</b>, 연기 5년은 <b>${ageTxt(beD)}</b>에 정상 수급과 누적액이 같아집니다.`);
-  else sub.push(`월 연금이 상한(B값 ${won(res.cap)})에 걸려 ` + (beE ? `늦춰 받아도 늘지 않습니다. 조기 5년은 <b>${ageTxt(beE)}</b>에 정상 수급과 누적액이 같아집니다.` : `받는 시기를 바꿔도 월액이 같아 일찍 받을수록 누적액이 큽니다.`));
+  const beE = res.be(-NPS.MAX_EARLY), beD = res.be(NPS.MAX_DELAY);
+  if (beE && beD) sub.push(`${offLabel(-NPS.MAX_EARLY)}은 <b>${ageTxt(beE)}</b>, ${offLabel(NPS.MAX_DELAY)}은 <b>${ageTxt(beD)}</b>에 정상 수급과 누적액이 같아집니다.`);
+  else sub.push(`월 연금이 상한(B값 ${won(res.cap)})에 걸려 ` + (beE ? `늦춰 받아도 늘지 않습니다. ${offLabel(-NPS.MAX_EARLY)}은 <b>${ageTxt(beE)}</b>에 정상 수급과 누적액이 같아집니다.` : `받는 시기를 바꿔도 월액이 같아 일찍 받을수록 누적액이 큽니다.`));
   sub.push('오늘 돈 가치 기준이며 이자·투자수익은 넣지 않았습니다.');
   document.getElementById('chart-subtitle').innerHTML = sub.join(' ');
   const opts = JSON.parse(JSON.stringify(chartCommonOptions));
@@ -1249,7 +1264,7 @@ function drawChart(inp, res) {
 function ageRows(inp, res) {
   const S = res.startAge, ks = chartOffsets();
   const rows = [];
-  for (let a = S - 5; a <= Math.max(inp.plan, S + 6); a++) rows.push({ age: a, year: Math.round(inp.birth) + a, vals: ks.map(k => res.cumAt(k, a + 1)) });
+  for (let a = S - NPS.MAX_EARLY; a <= Math.max(inp.plan, S + NPS.MAX_DELAY + 1); a++) rows.push({ age: a, year: Math.round(inp.birth) + a, vals: ks.map(k => res.cumAt(k, a + 1)) });
   return { ks, rows };
 }
 function renderAgeTable(inp, res) {
@@ -1283,8 +1298,9 @@ function renderNeed(inp, res) {
   if (rest > 0) notes.push(`나머지 <b>월 ${manShort(rest)}</b>은 퇴직연금·연금저축·IRP·배당 등으로 채워야 합니다. 이 금액을 만드는 데 필요한 자산은 은퇴 역산 계산기로 이어서 계산할 수 있습니다.`);
   else if (need > 0) notes.push(`입력한 생활비는 국민연금만으로 채워집니다.`);
   const annual = m * 12;
-  if (annual > 20000000) notes.push(`연 연금이 <b>${bigWon(annual)}</b>으로 2,000만원을 넘습니다. 공적연금은 건보료 피부양자 소득 기준(연 2,000만원)에 들어가므로 피부양자 자격을 확인해 보세요.`);
-  else if (annual > 15000000) notes.push(`공적연금은 건보료 피부양자 소득 기준(연 2,000만원)에 들어갑니다. 다른 소득과 합쳐 2,000만원을 넘는지 확인해 두세요.`);
+  const DEP = TR.NHIS.dependent.income, DEP_T = manTxt(DEP);   // 건보 피부양자 소득 기준 연 2,000만원
+  if (annual > DEP) notes.push(`연 연금이 <b>${bigWon(annual)}</b>으로 ${DEP_T}을 넘습니다. 공적연금은 건보료 피부양자 소득 기준(연 ${DEP_T})에 들어가므로 피부양자 자격을 확인해 보세요.`);
+  else if (annual > 15000000) notes.push(`공적연금은 건보료 피부양자 소득 기준(연 ${DEP_T})에 들어갑니다. 다른 소득과 합쳐 ${DEP_T}을 넘는지 확인해 두세요.`);
   document.getElementById('need-note').innerHTML = notes.join('<br>');
   const links = [];
   if (rest > 0) links.push(`<a class="btn" href="${retireUrl(inp, res)}" target="_blank" rel="noopener">나머지 월 ${manShort(rest)} → 은퇴 역산 계산기</a>`);
@@ -1315,8 +1331,8 @@ function renderChunap(inp, res) {
   let h = `<div class="ch-big">추납 보험료 ${bigWon(c.cost)}<small>월 ${won(c.premium)}(기준소득월액 ${formatManwon(Math.round(c.xB / 10000))} × ${rateTxt(c.rate)}) × ${c.months}개월 · 금액이 크면 최대 60회 분할(이자 가산)</small></div>`;
   if (c.stillShort) {
     h += `<div class="ch-row"><span>추납 후 가입기간</span><b>${monthsText(c.after.P)}</b></div>`;
-    h += `<div class="ch-row"><span>10년까지 모자란 기간</span><b>${monthsText(c.after.need)}</b></div>`;
-    out.innerHTML = h; note.innerHTML = '추납해도 노령연금 최소 가입기간(10년)에 못 미칩니다. 가입 종료연도를 늘리거나 임의(계속)가입을 함께 넣어 보세요.<br>' + chunapFacts(); return;
+    h += `<div class="ch-row"><span>${MIN_Y}년까지 모자란 기간</span><b>${monthsText(c.after.need)}</b></div>`;
+    out.innerHTML = h; note.innerHTML = '추납해도 노령연금 최소 가입기간(' + MIN_Y + '년)에 못 미칩니다. 가입 종료연도를 늘리거나 임의(계속)가입을 함께 넣어 보세요.<br>' + chunapFacts(); return;
   }
   const yrsPlan = Math.max(0, inp.plan - c.startAge);
   const extraTotal = c.delta * 12 * yrsPlan;
@@ -1336,7 +1352,7 @@ function renderChunap(inp, res) {
   }
   out.innerHTML = h;
   let n = '';
-  if (c.becameEligible) n += `<b>10년을 채워 연금 수급권이 생깁니다.</b> 추납하지 않으면 낸 보험료에 이자를 더한 반환일시금만 받지만, 추납하면 ${c.startAge}세부터 평생 매달 받습니다. `;
+  if (c.becameEligible) n += `<b>${MIN_Y}년을 채워 연금 수급권이 생깁니다.</b> 추납하지 않으면 낸 보험료에 이자를 더한 반환일시금만 받지만, 추납하면 ${c.startAge}세부터 평생 매달 받습니다. `;
   else if (isFinite(c.paybackMonths)) n += `오늘 돈 가치로 <b>${ageTxt(c.beAge)}보다 오래 받으면</b> 낸 보험료보다 더 받습니다. 연금은 물가만큼 오르지만, 그동안 이 돈을 다른 곳에 굴렸을 때의 수익은 넣지 않은 비교입니다. `;
   note.innerHTML = n + '<br>' + chunapFacts();
 }
@@ -1345,9 +1361,10 @@ const CH_APP = (() => { const d = new Date(); return { y: d.getFullYear(), m: d.
 const rateTxt = r => Math.round(r * 1000) / 10 + '%';
 function chunapFacts() {
   const dl = CH_APP.m === 12 ? { y: CH_APP.y + 1, m: 1 } : { y: CH_APP.y, m: CH_APP.m + 1 };
-  return `· 추납보험료 = 신청한 달 기준소득월액 × 납부기한 달 보험료율 × 개월. 보험료율이 2027년 10%로 오르는 등 2033년 13%까지 매년 0.5%p 오르니 같은 기간이라도 늦게 낼수록 비쌉니다.<br>` +
+  const PR = TR.NPS.premiumRateByYear;
+  return `· 추납보험료 = 신청한 달 기준소득월액 × 납부기한 달 보험료율 × 개월. 보험료율이 2027년 ${rateTxt(PR[2027])}로 오르는 등 2033년 ${rateTxt(PR[2033])}까지 매년 ${Math.round((PR[2027] - PR[2026]) * 1000) / 10}%p 오르니 같은 기간이라도 늦게 낼수록 비쌉니다.<br>` +
     `· 이번 달(${CH_APP.y}년 ${CH_APP.m}월)에 신청해 일시납 납부기한(${dl.y}년 ${dl.m}월 말일)까지 낸다고 보고 그 달 요율 <b>${rateTxt(npsChunapRate(CH_APP.y, CH_APP.m))}</b>를 썼습니다. 12월에 신청하면 납부기한이 다음 해 1월이라 다음 해 요율이 붙고, 12월 안에 바로 내면 그 해 요율을 씁니다.<br>` +
-    `· 2025년 11월 개편으로 보험료율·소득대체율 모두 <b>실제로 낸 달</b> 기준입니다. 2026년에 내면 추납 기간은 소득대체율 43%(비례상수 1.29)로 계산했습니다.<br>` +
+    `· 2025년 11월 개편으로 보험료율·소득대체율 모두 <b>실제로 낸 달</b> 기준입니다. 2026년에 내면 추납 기간은 소득대체율 43%(비례상수 ${RATE_NOW})로 계산했습니다.<br>` +
     `· 신청하려면 지금 국민연금에 가입 중(소득신고 또는 임의가입)이어야 하고, 연금을 받기 시작하면 낼 수 없습니다. 추납보험료도 낸 해의 연금보험료 소득공제 대상입니다(국세청 확인 권장).`;
 }
 
@@ -1358,7 +1375,7 @@ function solveFromNps() {
   const msg = document.getElementById('solve-msg');
   if (!(amt > 0)) { msg.textContent = '공단에서 조회한 월 연금액을 먼저 넣어 주세요.'; return; }
   const B = npsSolveB(inp, amt);
-  if (B === null) { msg.textContent = '가입 기간을 먼저 확인해 주세요 (10년 이상이어야 계산됩니다).'; return; }
+  if (B === null) { msg.textContent = '가입 기간을 먼저 확인해 주세요 (' + MIN_Y + '년 이상이어야 계산됩니다).'; return; }
   if (B < NPS.B_MIN || B > NPS.B_MAX) {
     msg.innerHTML = `<span style="color:var(--accent)">이 가입 기간으로는 맞출 수 없습니다(필요한 평균 소득 ${formatManwon(Math.round(B / 10000))}). 가입 시작·종료연도를 공단 조회 가정과 같게 맞춰 보세요.</span>`;
     return;
@@ -1375,23 +1392,23 @@ function renderInsight(inp, res) {
   const t = document.getElementById('insight-title');
   const p = [1, 2, 3].map(i => document.getElementById('insight-p' + i));
   if (!res.ok) { t.textContent = '입력값을 확인해 주세요'; p.forEach(x => x.textContent = ''); return; }
-  const marginal = Math.min(1.29 * (res.A + res.B) / 240, res.B);   // 2026년 이후 1년 더 가입할 때 늘어나는 월액
+  const marginal = Math.min(RATE_NOW * (res.A + res.B) / 240, res.B);   // 2026년 이후 1년 더 가입할 때 늘어나는 월액
   if (res.short) {
-    t.textContent = '10년을 채우느냐 못 채우느냐가 가장 큰 갈림길입니다';
-    p[0].innerHTML = `10년(120개월)을 넘기는 순간 일시금이 아니라 <strong>평생 매달 나오는 연금</strong>이 됩니다. 지금 소득이면 10년을 채웠을 때 월 약 <strong>${manShort(floor10(npsBaseMonthly(1.29, res.A, res.B, 120)))}</strong>(2026년 이후 가입분 기준)입니다.`;
+    t.textContent = MIN_Y + '년을 채우느냐 못 채우느냐가 가장 큰 갈림길입니다';
+    p[0].innerHTML = `${MIN_Y}년(${NPS.MIN_MONTHS}개월)을 넘기는 순간 일시금이 아니라 <strong>평생 매달 나오는 연금</strong>이 됩니다. 지금 소득이면 ${MIN_Y}년을 채웠을 때 월 약 <strong>${manShort(floor10(npsBaseMonthly(RATE_NOW, res.A, res.B, NPS.MIN_MONTHS)))}</strong>(2026년 이후 가입분 기준)입니다.`;
     p[1].innerHTML = `일이 없어 못 낸 기간은 <strong>추후납부(추납)</strong>로, 60세 이후에는 <strong>임의계속가입</strong>으로 기간을 채울 수 있습니다. 전업주부 등 소득이 없어도 <strong>임의가입</strong>할 수 있습니다.`;
     p[2].innerHTML = `신청 조건과 보험료는 국민연금공단(☎1355)에서 확인하세요.`;
     return;
   }
-  const S = res.startAge, beE = res.be(-5), beD = res.be(5), Mn = res.normal;
+  const S = res.startAge, beE = res.be(-NPS.MAX_EARLY), beD = res.be(NPS.MAX_DELAY), Mn = res.normal;
   if (!beD) {
     t.textContent = '월 연금이 상한에 걸려 늦춰 받아도 늘지 않습니다';
     p[0].innerHTML = `매달 받는 금액(부양가족연금 포함)은 평균 소득(B값 ${won(res.cap)})을 넘을 수 없어(국민연금법 제53조) 연기해도 월 ${manShort(Mn)} 그대로입니다. ` +
       (beE ? `일찍 받으면 월 ${manShort(res.options[0].monthly)}로 줄고, ${ageTxt(beE)}보다 오래 살면 정상 수급이 더 많이 받습니다.` : `일찍 받아도 같은 금액이라 앞당길수록 누적액이 큽니다.`) +
       ` 상한을 조정 후 총액에 적용한 결과이며, 공단 실무는 다를 수 있으니 ☎1355에서 확인하세요.`;
   } else {
-    t.innerHTML = `조기 5년은 ${ageTxt(beE)}, 연기 5년은 ${ageTxt(beD)}가 갈림길입니다`;
-    p[0].innerHTML = `일찍 받으면 평생 30% 깎인 금액(월 ${manShort(res.options[0].monthly)})을 5년 먼저 받고, 늦춰 받으면 5년 동안 받을 돈 <strong>${bigWon(Mn * 60)}</strong>을 건너뛰는 대신 평생 월 <strong>${manShort(res.options[10].monthly - Mn)}</strong>을 더 받습니다. 건너뛴 돈을 더 받는 돈으로 메우는 시점이 손익분기 나이입니다. 건강·다른 소득·연금 공백기를 같이 놓고 정하세요.`;
+    t.innerHTML = `${offLabel(-NPS.MAX_EARLY)}은 ${ageTxt(beE)}, ${offLabel(NPS.MAX_DELAY)}은 ${ageTxt(beD)}가 갈림길입니다`;
+    p[0].innerHTML = `일찍 받으면 평생 ${Math.round(NPS.EARLY_PER_YEAR * NPS.MAX_EARLY * 100)}% 깎인 금액(월 ${manShort(res.options[0].monthly)})을 ${NPS.MAX_EARLY}년 먼저 받고, 늦춰 받으면 ${NPS.MAX_DELAY}년 동안 받을 돈 <strong>${bigWon(Mn * (12 * NPS.MAX_DELAY))}</strong>을 건너뛰는 대신 평생 월 <strong>${manShort(res.options[NPS.MAX_EARLY + NPS.MAX_DELAY].monthly - Mn)}</strong>을 더 받습니다. 건너뛴 돈을 더 받는 돈으로 메우는 시점이 손익분기 나이입니다. 건강·다른 소득·연금 공백기를 같이 놓고 정하세요.`;
   }
   const post = res.groups.filter(g => g.from >= 2026).reduce((s, g) => s + g.months, 0);
   p[1].innerHTML = `입력한 가입 기간의 비례상수 평균은 <strong>${res.alphaEff.toFixed(3)}</strong>(40년 기준 소득대체율 ${pct1(res.repEff)} 상당)입니다. ` +
@@ -1405,15 +1422,15 @@ function resultText() {
   const inp = readInputs(), res = compute(inp);
   const lines = ['[국민연금 계산기 · 똑재TV]'];
   if (!res.ok) lines.push(res.error);
-  else if (res.short) lines.push(`가입 ${res.yearsText} — 10년까지 ${monthsText(res.need)} 더 필요`);
+  else if (res.short) lines.push(`가입 ${res.yearsText} — ${MIN_Y}년까지 ${monthsText(res.need)} 더 필요`);
   else {
     lines.push(`${Math.round(inp.birth)}년생 · 가입 ${res.yearsText} · 평균 월소득 ${formatManwon(Math.round(res.B / 10000))}`);
     lines.push(`${offLabel(SEL)} 수급: 만 ${res.sel.age}세(${res.sel.year}년)부터 월 ${won(res.sel.monthly)} (오늘 돈 가치)`);
     if (SEL !== 0) lines.push(`정상 수급(${S_(res)}세) 월 ${won(res.normal)} · 손익분기 ${res.be(SEL) ? ageTxt(res.be(SEL)) : '없음(상한에 걸려 월액 같음)'}`);
-    lines.push(`조기 5년 월 ${won(res.options[0].monthly)} / 연기 5년 월 ${won(res.options[10].monthly)}`);
+    lines.push(`${offLabel(-NPS.MAX_EARLY)} 월 ${won(res.options[0].monthly)} / ${offLabel(NPS.MAX_DELAY)} 월 ${won(res.options[NPS.MAX_EARLY + NPS.MAX_DELAY].monthly)}`);
     lines.push(`만 ${inp.plan}세까지 누적 ${bigWon(res.cumAt(SEL, inp.plan))}`);
   }
-  lines.push('(국민연금공단 간편계산 산식, 2026년 A값 기준 참고용 · 세전)');
+  lines.push('(국민연금공단 간편계산 산식, ' + NPS.A_YEAR + '년 A값 기준 참고용 · 세전)');
   lines.push(buildUrl());
   return lines.join('\n');
 }
@@ -1480,12 +1497,12 @@ function updateDisplays() {
   set('inflation-display', isFinite(inf) ? '연 ' + inf.toFixed(1) + '%' : '-', !isFinite(inf));
   set('need-display', nd > 0 ? '월 ' + formatManwon(nd) : '입력', !(nd > 0));
   const cmv = v('cm'), cbv = v('cb'), na = v('nps-amt');
-  set('cm-display', cmv > 0 ? monthsText(Math.min(119, cmv)) : '없음', !(cmv > 0));
+  set('cm-display', cmv > 0 ? monthsText(Math.min(NPS.MAX_CHUNAP, cmv)) : '없음', !(cmv > 0));
   set('cb-display', cbv > 0 ? '월 ' + formatManwon(cbv) : '입력', !(cbv > 0));
   set('nps-amt-display', na > 0 ? '월 ' + (Math.round(na * 10) / 10).toLocaleString() + '만원' : '입력', !(na > 0));
   const Bc = Math.max(NPS.B_MIN, Math.min(NPS.B_MAX, (inc || 0) * 10000));
   document.getElementById('premium-hint').innerHTML = inc > 0
-    ? `이 소득의 2026년 보험료(9.5%)는 월 <b>${won(Math.floor(Bc * 0.095 / 10) * 10)}</b> — 직장인은 회사와 절반씩(본인 ${won(Math.floor(Bc * 0.0475 / 10) * 10)}), 지역가입자는 전액 본인 부담`
+    ? `이 소득의 2026년 보험료(${rateTxt(NPS.RATE_2026)})는 월 <b>${won(Math.floor(Bc * NPS.RATE_2026 / 10) * 10)}</b> — 직장인은 회사와 절반씩(본인 ${won(Math.floor(Bc * (NPS.RATE_2026 * TR.NPS.employeeShareRatio) / 10) * 10)}), 지역가입자는 전액 본인 부담`
     : '';
   document.getElementById('inf-body').classList.toggle('is-hidden', !document.getElementById('inf-on').checked);
   document.querySelectorAll('.chips[data-target]').forEach(box => {
@@ -1526,7 +1543,7 @@ function bindEvents() {
 // ============== 주소로 값 주고받기 ==============
 // 예: ?by=1972&sy=1998&ey=2031&gap=0&b=300&t=0&sp=0&dep=0&plan=90&inf=2.5&need=298&cm=36&cb=300&cv=0  (금액은 만원, t = 받는 시기 −5~5, inf=0이면 미래 금액 끔, cm·cb·cv = 추납 개월·기준소득월액·임의가입)
 const URL_MAP = { by: 'birth', sy: 'start', ey: 'end', gap: 'gap', b: 'income', dep: 'dep', plan: 'plan', need: 'need', cm: 'cm', cb: 'cb' };
-const URL_LIM = { by: [1930, 2010], sy: [1988, 2080], ey: [1988, 2080], gap: [0, 600], b: [0, 2000], dep: [0, 10], plan: [60, 110], need: [0, 5000], cm: [0, 119], cb: [0, 2000] };
+const URL_LIM = { by: [1930, 2010], sy: [NPS.FIRST_YEAR, 2080], ey: [NPS.FIRST_YEAR, 2080], gap: [0, 600], b: [0, 2000], dep: [0, 10], plan: [60, 110], need: [0, 5000], cm: [0, NPS.MAX_CHUNAP], cb: [0, 2000] };
 function buildUrl() {
   const p = new URLSearchParams();
   Object.entries(URL_MAP).forEach(([k, id]) => { const v = parseFloat(document.getElementById(id).value); if (isFinite(v)) p.set(k, String(Math.round(v * 100) / 100)); });
@@ -1546,7 +1563,7 @@ function readUrl() {
     if (!isFinite(v) || v < URL_LIM[k][0] || v > URL_LIM[k][1]) return;
     document.getElementById(id).value = String(Math.round(v * 100) / 100);
   });
-  const t = parseInt(q.get('t'), 10); if (t >= -5 && t <= 5) SEL = t;
+  const t = parseInt(q.get('t'), 10); if (t >= -NPS.MAX_EARLY && t <= NPS.MAX_DELAY) SEL = t;
   if (q.get('sp') === '1') document.getElementById('spouse').checked = true;
   if (q.get('cv') === '1') document.getElementById('cv').checked = true;
   if (q.has('inf')) {
