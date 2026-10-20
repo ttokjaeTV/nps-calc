@@ -90,6 +90,20 @@ ok(E.npsReplacement(2.4, 2.4 * 0.75) === 70 && E.npsReplacement(1.8) === 60 && E
   ok(g[0] === 70 && g[1] === 60 && g[2] === 50 && g[g.length - 1] === 43, '가입 기간별 소득대체율 ' + g.join('/'));
 }
 
+// 소득대체율 표시 반올림: 가중평균 α의 부동소수 끝수로 x.x5%가 내림되지 않게 (1980년생 2017~2026: ᾱ = 13.035/10 = 1.3035 → 2 × 1.3035 ÷ 6 = 43.45% → 43.5%)
+ok(E.npsReplacement(1.3035) === 43.5 && E.npsCalc({ birth: 1980, startYear: 2017, endYear: 2026, B: 2500000 }).repEff === 43.5, '소득대체율 43.45% → 43.5% (반올림)');
+// 누적 수령액 = 받기 시작한 해부터 그 나이 해까지 포함 (retire-check·retire-drawdown·freedom과 같은 기준)
+//  손계산: 1969년생 1995~2029 B 300만, 정상 65세 월 1,406,500원 → 80세 해까지 16년 = 1,406,500 × 12 × 16 = 270,048,000
+//          90세 해까지 26년 = 438,828,000, 시작 해(65세)만 = 16,878,000, 64세 = 0
+{
+  const q = E.npsCalc({ birth: 1969, startYear: 1995, endYear: 2029, B: 3000000 });
+  ok(q.normal === 1406500 && E.npsCumulative(q, 0, 80) === 270048000 && E.npsCumulative(q, 0, 90) === 438828000
+    && E.npsCumulative(q, 0, 65) === 16878000 && E.npsCumulative(q, 0, 64) === 0, '누적 수령액 그 나이 해 포함');
+  // 손익분기는 연속 시점이라 그대로 (65 + 0.7/0.06), 해 단위 누적으로는 76세 해부터 정상이 많아짐
+  ok(E.npsCumulative(q, -5, 75) > E.npsCumulative(q, 0, 75) && E.npsCumulative(q, -5, 76) < E.npsCumulative(q, 0, 76)
+    && Math.floor(E.npsBreakEven(q, -5)) === 76, '손익분기 나이가 속한 해에서 누적 순서가 바뀜');
+}
+
 const f = E.npsBaseMonthly(1.296, 3193511, 3500000, 480);
 console.log('firework 대조(비례상수 1.296 가정):', Math.round(f), '원 (firework 표시 1,445,380원)');
 process.exit(bad ? 1 : 0);

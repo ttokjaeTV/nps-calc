@@ -39,7 +39,8 @@ const npsBWeight = year => year <= TR.NPS.bWeightUntilYear ? TR.NPS.bWeightOld :
 //  40년이면 월액 = (αA + αwB) × 2 ÷ 12 → B = A일 때 α(1 + w) ÷ 6
 //  1988~1998 2.4 → 70% · 1999~2007 1.8 → 60% · 2008 1.5 → 50% · 2026~ 1.29 → 43%
 //  alphaB: B값에 붙는 α × w (생략하면 1999년 이후 가입분으로 봄)
-const npsReplacement = (alpha, alphaB = alpha) => Math.round((alpha + alphaB) / 6 * 100 * 10) / 10;
+//  가중평균 α의 부동소수 끝수(예: 1.3035 → 434.4999…)가 x.x5%를 내림하지 않도록 소수 6자리로 정리한 뒤 반올림
+const npsReplacement = (alpha, alphaB = alpha) => Math.round(+((alpha + alphaB) / 6 * 100 * 10).toFixed(6)) / 10;
 
 // 출생연도별 노령연금 수급개시연령
 //  rules.js NPS.startAgeByBirthYear: [출생연도 상한, 나이] — 출생연도 ≤ 상한인 첫 행
@@ -183,6 +184,8 @@ function monthsText(m) {
 //  조기 k년: (1 − 0.06k)(x − S + k) = (x − S)  → x = S + (1 − 0.06k)/0.06
 //  연기 k년: (1 + 0.072k)(x − S − k) = (x − S) → x = S + (1 + 0.072k)/0.072
 // 부양가족연금은 조정되지 않고 상한(B값)도 있으므로 실제 월액으로 직접 푼다. 상한에 걸려 월액이 같으면 null
+// x는 연속 시점(만 나이, 그 나이 해의 시작 = x.0)이라 누적을 해 단위로 세는 방식과 무관하다.
+//  해 단위 누적(npsCumulative, 그 나이 해 포함)으로는 x가 속한 해(만 floor(x)세 해)부터 순서가 바뀐다
 function npsBreakEven(res, offset) {
   if (!res.ok || res.short || offset === 0) return null;
   const S = res.startAge, Mn = res.normal, Mo = res.options[offset + NPS.MAX_EARLY].monthly;
@@ -193,10 +196,12 @@ function npsBreakEven(res, offset) {
 }
 
 // 나이별 누적 수령액 (오늘 돈 가치, 원). 연금은 매년 물가만큼 오르므로 실질 월액은 일정하다고 본다
+//  'age세까지' = 받기 시작한 해부터 age세 해까지 (그 나이 해 포함) → (age − 시작 나이 + 1)년 × 12개월
+//  (retire-drawdown·freedom·retire-check와 같은 기준. 시작 나이보다 어리면 0)
 function npsCumulative(res, offset, age) {
   if (!res.ok || res.short) return 0;
   const o = res.options[offset + NPS.MAX_EARLY];
-  const yrs = Math.max(0, age - o.age);
+  const yrs = Math.max(0, age - o.age + 1);
   return o.monthly * 12 * yrs;
 }
 
