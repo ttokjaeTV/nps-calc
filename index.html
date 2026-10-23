@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="https://ttokjaetv.github.io/member-lock.js"></script>
+<script src="https://ttokjaetv.github.io/profile-v1.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>국민연금 계산기 · 똑재TV</title>
 <meta name="description" content="국민연금 예상 월 수령액을 공단 공식 산식(2026년 A값·소득대체율 43% 반영)으로 계산합니다. 조기·정상·연기 11가지 시기 비교와 손익분기 나이까지 한 번에.">
@@ -468,6 +469,8 @@
       </a>
     </div>
   </div>
+
+  <div id="tj-profile"></div>
 
   <!-- STEP 01 : 가입 정보 -->
   <div class="card">
@@ -1265,6 +1268,7 @@ function render() {
     return;
   }
   renderVerdict(inp, res);
+  if (window.TJProfile) TJProfile.offer(res.short ? null : { nps: Math.round(res.sel.monthly / 1000) / 10, npsAge: res.sel.age }, '이 계산 결과');
   if (full) {
     renderStats(inp, res);
     renderDetail(inp, res);
@@ -1830,6 +1834,11 @@ window.addEventListener('DOMContentLoaded', () => {
   readUrl();
   bindEvents();
   rerender();
+  /* 내 정보(다른 노후 계산기와 같이 쓰는 값) 채우기·저장 — 허브 profile-v1.js. 계산한 월 연금액은 저장 버튼으로 */
+  if (window.TJProfile) {
+    TJProfile.attach({ map: { 'birth': 'birth', 'nps-amt': 'nps', 'need': 'spend', 'inflation': 'inflation', 'plan': 'endAge' }, clicks: '.chips[data-target] .chip' });
+    rerender();
+  }
 });
 </script>
 </body>
