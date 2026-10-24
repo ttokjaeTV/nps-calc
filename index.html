@@ -1563,6 +1563,7 @@ function renderNeed(inp, res) {
   if (rest > 0) links.push(`<a class="btn" href="${retireUrl(inp, res)}" target="_blank" rel="noopener">나머지 월 ${manShort(rest)} → 은퇴 역산 계산기</a>`);
   if (annual > DEP_NEAR) links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/fin-income-tax/?t=dep&dp=${Math.round(annual / 10000)}" target="_blank" rel="noopener">건보료 피부양자 확인 →</a>`);
   links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/pension-tax-sim/" target="_blank" rel="noopener">연금저축·IRP 인출 세금 →</a>`);
+  links.push(`<a class="btn ghost" href="https://ttokjaetv.github.io/retire-calendar/?nps=${Math.round(m / 10000)}&age=${res.sel.age}" target="_blank" rel="noopener">노후 월급 달력에 넣어 보기 →</a>`);
   document.getElementById('next-links').innerHTML = links.join('');
   document.getElementById('cta-retire').href = rest > 0 ? retireUrl(inp, res) : 'https://ttokjaetv.github.io/retirement/';
 }
