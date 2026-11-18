@@ -747,6 +747,7 @@
             <option value="direct">월 연금·추납액 직접 입력</option>
           </select>
           <div class="input-hint" id="c3m-hint">-</div>
+          <div class="input-hint">추납액은 공단 신청 화면(4단계)에서, 늘어나는 월 연금은 이 계산기에서 확인해요. <a class="ext-link" href="#nps-guide">공단 조회 방법 보기 ↓</a></div>
         </div>
         <div id="c3-direct">
           <div class="input-group">
@@ -837,6 +838,7 @@
     </div>
     <div class="method-sub" style="margin-top:24px;">공단 홈페이지에서 내 예상 연금액 조회하는 법 (PC)</div>
     <div class="guide-steps">
+      <!-- 단계 추가: figure.guide-step 한 줄(gs-n 번호 + img/파일명)을 아래 마지막 단계 뒤에 덧붙이면 된다 -->
       <figure class="guide-step"><figcaption><span class="gs-n">1</span>국민연금공단(<a class="ext-link" href="https://www.nps.or.kr" target="_blank" rel="noopener">nps.or.kr</a>) 첫 화면에서 <b>개인민원 → 바로가기</b></figcaption><img src="img/nps-step1.jpg" alt="국민연금공단 첫 화면의 개인민원 바로가기" loading="lazy"></figure>
       <figure class="guide-step"><figcaption><span class="gs-n">2</span>전자민원 화면 검색창에 <b>예상연금</b>을 입력하고 검색</figcaption><img src="img/nps-step2.jpg" alt="전자민원 검색창" loading="lazy"></figure>
       <figure class="guide-step"><figcaption><span class="gs-n">3</span><b>예상연금액 조회 → 조회하기</b> (가입 이력 전체는 바로 위 '가입내역조회')</figcaption><img src="img/nps-step3.jpg" alt="검색 결과의 예상연금액 조회" loading="lazy"></figure>
@@ -854,6 +856,12 @@
       </tbody>
     </table>
     <div class="note-box">📱 휴대폰에서는 <b>'내 곁에 국민연금'</b> 앱으로도 조회할 수 있습니다. 조회한 월액을 위 STEP 01의 <b>'공단 조회 금액에 맞추기'</b>에 넣으면 평균 소득이 자동으로 맞춰집니다. <span style="color:var(--ink-mute)">(화면은 2026-10-13 공단 홈페이지 기준이며 바뀔 수 있습니다)</span></div>
+    <div class="method-sub" style="margin-top:24px;">추납액은 여기서 확인해요 — 추납 신청 화면 (PC) <span style="font-size:12.5px;color:var(--ink-mute);font-weight:700;">2026-11-19 화면 · 금액·개월 수·이름은 가렸어요</span></div>
+    <div class="guide-steps">
+      <figure class="guide-step"><figcaption><span class="gs-n">6</span>공단 <b>전자민원 → 개인 → 신고·신청 → 추납보험료 납부 신청</b>에서 1단계 유의사항(혼인관계증명서 예시)·2단계 개인정보 안내를 확인하고, 3단계에 연락처를 넣은 뒤 <b>4단계 '가입내역 등'</b>으로 넘어가면 추납 대상 개월 수·추납신청기준소득월액·연금보험료가 나옵니다</figcaption><img src="img/nps-step5.jpg" alt="추납보험료 납부 신청 4단계 가입내역 화면(금액·개월 수 가림)" loading="lazy"></figure>
+      <figure class="guide-step"><figcaption><span class="gs-n">7</span>아래 <b>'추납 희망기간'</b>을 넣고 <b>조회</b>를 누르면 <b>'예상 추납보험료'</b>가 나옵니다 (일시납부 기준, 분할납부는 최대 60회·이자 별도)</figcaption><img src="img/nps-step6.jpg" alt="추납 희망기간 조회와 예상 추납보험료 화면(금액·개월 수 가림)" loading="lazy"></figure>
+    </div>
+    <div class="note-box">⚠ <b>4단계에서 '접수·제출'을 누르면 실제 신청이 됩니다.</b> 금액만 보려면 '조회'까지만 누르세요. 신청하려면 혼인관계증명서 등 증빙서류가 있어야 합니다. 공단 신청 화면은 <b>추납액만</b> 보여 주고 추납으로 <b>늘어나는 월 연금은 보여 주지 않습니다</b> — 그 부분은 이 계산기의 <a class="ext-link" href="#chunap-card">추납 손익</a>에서 계산하세요.</div>
   </div>
 
   <div class="card">
@@ -1779,7 +1787,7 @@ function renderChunap3(inp) {
   const direct = document.getElementById('c3m').value === 'direct';
   show('c3-direct', direct);
   document.getElementById('c3m-hint').textContent = direct
-    ? '공단 예상 월액과 추납 후 예상 월액(늘어나는 만큼), 추납액을 그대로 넣어 보세요.'
+    ? '공단 예상 월액과 추납액(공단 신청 화면 4단계)을 넣고, 늘어나는 월 연금은 위 추납 손익 카드(자동 계산) 값을 넣어 보세요.'
     : '추납할 기간·기준소득월액은 위 추납 손익 카드의 입력을 씁니다(안 낸 기간이 있어야 계산).';
   const out = document.getElementById('c3-out'), t = c3Compute(inp);
   document.querySelectorAll('#chunap3-card .c3-part').forEach(el => el.classList.toggle('is-hidden', !t.ok));
@@ -1813,7 +1821,7 @@ function renderChunap3(inp) {
     `B↔C 손익분기 <b>${xs(t.xBC)}</b>${t.xBC === null ? '' : ` (정상 수급 시작 후 ${Math.round((t.xBC - S) * 12)}개월)`}: 이 나이를 넘겨 오래 받을수록 C(정상 수령) 누적이 B를 앞섭니다.<br>` +
     `· 월 연금은 매년 물가만큼 오른다고 보고 <b>오늘 돈 가치로 일정하게</b> 셌습니다. <b>할인율은 반영하지 않았고</b>, 낸 돈의 이자·투자수익도 넣지 않았습니다.<br>` +
     `· 조기 수령은 감액률이 <b>평생 고정</b>됩니다. 월 0.5%씩(1년 6%, 최대 5년) 줄어든 금액을 계속 받습니다. 앞당길 개월 수는 위 ${t.m}개월(내림)을 기준으로 잡았고, 실제 신청 단위는 공단에 확인하세요.<br>` +
-    `· 조기 수령 중 일정 소득·사업소득이 있으면 연금이 줄어들 수 있습니다(소득 기준·감액 방식은 공단 확인). 이 비교에는 반영하지 않았습니다.<br>` +
+    `· 조기노령연금은 <b>가입 ${MIN_Y}년 이상</b>이고 <b>A값(월 약 ${Math.round(NPS.A / 1e4)}만원)을 넘는 소득이 없어야</b> 받을 수 있고, 받는 중 그 소득이 생기면 그 기간 지급이 멈출 수 있습니다. 이 비교에는 반영하지 않았습니다. 기준은 국민연금공단에서 확인하세요.<br>` +
     `· 상계월수는 추납액을 월 증가액으로 나눈 값으로, 단순 회수 기간과 같은 값을 개월·년으로 달리 보인 것입니다. 추납 가능 기간·분할납부 여부·세금 효과는 공단·국세청에서 확인하세요.`;
   drawChart3(t);
 }
