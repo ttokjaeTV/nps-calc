@@ -236,6 +236,57 @@ function npsChunap(o, c) {
   };
 }
 
+// ============== 추납 3자 비교 (추납 포기 A · 추납 후 조기 B · 추납 후 정상 C) ==============
+//  A: 추납 안 함, 정상 수급 (월액 M0, 비용 0)
+//  B: 추납 후 조기 수급. 월액이 추납 전(M0) 이상 유지되는 한도까지 앞당긴다 → m = payAt(m) ≥ M0 인 가장 큰 정수 개월(0~MAX_EARLY×12).
+//     '월액을 같게 만드는 최소 조기 개월'은 소수(예 33.3)로 나오므로 내림한다. 올리면(34개월) 월액이 M0 아래로 떨어진다.
+//     정확한 소수는 mExact로 따로 주고 화면에 같이 보여 준다. 감액은 월 0.5%(=6%/12, rules.js)
+//  C: 추납 후 정상 수급 (월액 M1 = M0 + 증가분)
+//  순누적(x세 시점) = −추납비용 + 12 × 월액 × max(0, x − 시작 나이). 비용은 처음에 한 번 내고 할인 없음, 월액은 오늘 돈 가치(물가 반영된 일정 월액)
+//  x는 연속 시점(만 x세가 되는 때) — npsBreakEven과 같은 기준
+//  p = { S(정상 수급 나이), M0, M1(원), cost(추납 총액, 원), payAt(m) = 추납 후 m개월 앞당겨 받을 때 월액 }
+function npsCompare3(p) {
+  const { S, M0, M1, cost, payAt } = p;
+  const perM = NPS.EARLY_PER_YEAR / 12, maxM = NPS.MAX_EARLY * 12;
+  const res = { ok: false, S, M0, M1, cost, delta: M1 - M0, perM, maxM };
+  if (!(M0 > 0) || !(res.delta > 0)) { res.reason = 'noGain'; return res; }   // 추납해도 월액이 안 늘면 비교 대상이 없다
+  let m = 0;
+  while (m < maxM && payAt(m + 1) >= M0) m++;
+  const mB = payAt(m);
+  const A = { s: S, M: M0, K: 0 }, B = { s: S - m / 12, M: mB, K: cost }, C = { s: S, M: M1, K: cost };
+  const offsetMonths = cost / res.delta;   // 상계월수 = 추납액 ÷ 월 증가액 = 단순 회수기간(개월)
+  return Object.assign(res, { ok: true, m, mB, mExact: (1 - M0 / M1) / perM, capped: m === maxM, A, B, C,
+    offsetMonths, paybackYears: offsetMonths / 12, paybackAge: S + offsetMonths / 12,
+    leadAB: m * mB - cost,   // 정상 수급 나이(S)에 A보다 B가 앞선 순누적 (비용 차감)
+    xAB: npsCross(A, B), xBC: npsCross(B, C), xCA: npsCross(C, A) });
+}
+
+// x세 시점 순누적 수령액 (원)
+function npsNet(L, x) { return -L.K + 12 * L.M * Math.max(0, x - L.s); }
+
+// 두 선(P, Q)의 순누적이 처음 뒤집히는 나이. 시작 나이 둘 사이(구간 1)와 그 뒤(구간 2)가 각각 직선이라 닫힌 식으로 푼다.
+//  평행하거나 겹치면 null
+function npsCross(P, Q) {
+  const d = x => npsNet(P, x) - npsNet(Q, x);
+  const x0 = Math.min(P.s, Q.s), x1 = Math.max(P.s, Q.s);
+  const d0 = d(x0), d1 = d(x1), slope = 12 * (P.M - Q.M);
+  if (d0 !== 0 && (d1 === 0 || d0 * d1 < 0)) return x0 + (x1 - x0) * d0 / (d0 - d1);
+  if (d1 !== 0 && slope * d1 < 0) return x1 - d1 / slope;
+  return null;
+}
+
+// 자동 모드: 추납 개월(c.months)과 기준소득월액으로 npsChunap이 계산한 추납 전·후 월액을 그대로 쓴다
+//  조기 월액 = npsPayable(기본연금액, 부양가족연금(감액 없음), 1 − 월 0.5% × m, 최고한도) — npsCalc의 연 단위 조기와 같은 식
+function npsChunap3(o, c) {
+  const r = npsChunap(o, c);
+  if (!r.ok) return { ok: false, reason: 'input' };
+  if (r.before.short) return { ok: false, reason: 'short', ch: r };
+  if (!r.months) return { ok: false, reason: 'noMonths', ch: r };
+  const a = r.after, perM = NPS.EARLY_PER_YEAR / 12;
+  const payAt = m => npsPayable(a.base, a.fam, 1 - perM * m, a.cap).monthly;
+  return Object.assign(npsCompare3({ S: r.before.startAge, M0: r.before.normal, M1: a.normal, cost: r.cost, payAt }), { ch: r });
+}
+
 // 공단에서 조회한 예상 월액(정상 수급, 부양가족연금 제외)에 맞는 평균 소득(B값) 역산
 function npsSolveB(o, targetMonthly) {
   const r = npsCalc(Object.assign({}, o, { spouse: false, dependents: 0, extraMonths: 0 }));
@@ -245,4 +296,4 @@ function npsSolveB(o, targetMonthly) {
   return Math.round(B);
 }
 
-if (typeof module !== 'undefined') module.exports = { NPS, npsAlpha, npsPremiumRate, npsChunapRate, npsPayable, npsReplacement, npsStartAge, npsCalc, npsChunap, npsSolveB, npsBaseMonthly, npsTimingRate, npsBreakEven, npsCumulative, floor10, monthsText };
+if (typeof module !== 'undefined') module.exports = { NPS, npsAlpha, npsPremiumRate, npsChunapRate, npsPayable, npsReplacement, npsStartAge, npsCalc, npsChunap, npsCompare3, npsChunap3, npsCross, npsNet, npsSolveB, npsBaseMonthly, npsTimingRate, npsBreakEven, npsCumulative, floor10, monthsText };

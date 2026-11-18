@@ -104,6 +104,49 @@ ok(E.npsReplacement(1.3035) === 43.5 && E.npsCalc({ birth: 1980, startYear: 2017
     && Math.floor(E.npsBreakEven(q, -5)) === 76, '손익분기 나이가 속한 해에서 누적 순서가 바뀜');
 }
 
+// ===== 추납 3자 비교 (글 「추납 포기 vs 최저추납+조기수령 vs 추납+정상수령」 사례 재현) =====
+//  사례: 월 100만 → 추납 후 120만(+20만), 추납액 1,100만, 정상 65세. 월 0.5% 감액
+//  최소 조기 개월: 120 × (1 − 0.005m) ≥ 100 → m ≤ 33.33. 내림해서 33개월(120×(1−0.165) = 100.2만). 34개월은 99.6만이라 추납 전보다 낮다
+{
+  const fl = x => Math.floor(x / 10) * 10, M0 = 1000000, M1 = 1200000, K = 11000000, S = 65;
+  const payAt = m => fl(M1 * (1 - 0.005 * m));
+  const t = E.npsCompare3({ S, M0, M1, cost: K, payAt });
+  ok(t.ok && t.m === 33, '조기 개월 내림 33개월 (' + t.m + ')');
+  ok(payAt(33) === 1002000 && payAt(34) === 996000 && t.mB === 1002000, '33개월 100.2만, 34개월 99.6만(<100만)');
+  ok(Math.abs(t.mExact - 100 / 3) < 1e-9, '정확한 최소 조기 개월 33.33 (' + t.mExact + ')');
+  ok(Math.abs(t.B.s - 62.25) < 1e-9, 'B 시작 나이 62.25세');
+  ok(t.offsetMonths === 55 && Math.abs(t.paybackYears - 55 / 12) < 1e-9 && Math.abs(t.paybackAge - (65 + 55 / 12)) < 1e-9, '상계월수 55개월 · 4.58년 · 69.58세');
+  ok(t.leadAB === 33 * 1002000 - K && t.leadAB === 22066000, 'A↔B 65세 순이익 2,206.6만(엔진: 월 100.2만 × 33개월 − 1,100만)');
+  ok(Math.abs(t.xAB - (62.25 + K / (12 * 1002000))) < 1e-9 && Math.abs(t.xAB - 63.164) < 1e-3, 'A↔B 손익분기 ≈ 63.16세');
+  ok(Math.abs(t.xBC - (65 + 33 * 1002000 / 198000 / 12)) < 1e-9 && Math.round((t.xBC - 65) * 12) === 167, 'B↔C: 월 100.2만이면 167개월(78.92세)');
+  ok(Math.abs(t.xCA - (65 + 55 / 12)) < 1e-9, 'C↔A 손익분기 = 단순 회수 나이');
+  ok(E.npsNet(t.A, 70) === 12 * M0 * 5 && E.npsNet(t.C, 65) === -K && E.npsNet(t.B, 62.25) === -K, '순누적: 시작 전 = −비용, 이후 12×월액×경과');
+  // 글의 숫자는 B 월액을 100만(감액 무시)으로 본 값: 2,200만원, 165개월(65+13.75 = 78.75세)
+  const g = E.npsCompare3({ S, M0, M1, cost: K, payAt: m => m <= 33 ? M0 : 0 });
+  ok(g.m === 33 && g.mB === M0 && g.leadAB === 22000000, '글 사례 A↔B 순이익 2,200만원 (B 월 100만 기준)');
+  ok(Math.abs(g.xBC - 78.75) < 1e-9 && Math.round((g.xBC - 65) * 12) === 165, '글 사례 B↔C 165개월 → 78.75세 (B 월 100만 기준)');
+  // 경계: 증가분 0 이하 → 비교 없음 / 평행·겹침은 교차 없음 / 비용 0이면 상계월수 0
+  ok(!E.npsCompare3({ S, M0, M1: M0, cost: K, payAt }).ok, '증가분 0이면 비교하지 않음');
+  ok(E.npsCross({ s: 65, M: 1e6, K: 0 }, { s: 65, M: 1e6, K: 0 }) === null && E.npsCross({ s: 65, M: 1e6, K: 0 }, { s: 60, M: 1e6, K: 0 }) === null, '평행·겹치는 선은 교차 없음');
+  ok(E.npsCompare3({ S, M0, M1, cost: 0, payAt }).offsetMonths === 0, '추납 비용 0 → 상계월수 0');
+  // 60개월(5년) 한도: 증가가 매우 커서 5년 앞당겨도 추납 전 이상이면 60개월에서 멈추고 capped 표시
+  const cp = E.npsCompare3({ S, M0, M1: 2000000, cost: K, payAt: m => Math.floor(2000000 * (1 - 0.005 * m) / 10) * 10 });
+  ok(cp.m === 60 && cp.capped, '조기 60개월 상한 도달 표시');
+}
+// 자동 모드: 1972년생 1998~2031, 공백 36개월을 월 300만으로 추납 → npsChunap의 추납 전·후 월액과 같은 값을 쓴다
+{
+  const o = { birth: 1972, startYear: 1998, endYear: 2031, gapMonths: 36, B: 3000000 };
+  const t = E.npsChunap3(o, { months: 36, B: 3000000 });
+  const r = E.npsChunap(o, { months: 36, B: 3000000 });
+  ok(t.ok && t.M0 === r.before.normal && t.M1 === r.after.normal && t.cost === r.cost && t.S === 65, '자동 모드가 npsChunap 월액·비용 재사용');
+  // 연 단위 조기(npsCalc)와 같은 식인지: 12k개월 앞당김 = −k년 옵션
+  const a = r.after, pay = m => E.npsPayable(a.base, a.fam, 1 - 0.005 * m, a.cap).monthly;
+  for (let k = 1; k <= 5; k++) ok(pay(12 * k) === a.options[5 - k].monthly, '조기 ' + 12 * k + '개월 월액 = 연 단위 −' + k + '년 옵션');
+  ok(t.mB >= t.M0 && pay(t.m + 1) < t.M0, '자동 모드 조기 개월: 추납 전 월액 이상 유지되는 한도');
+  ok(E.npsChunap3(o, { months: 0, B: 3000000 }).reason === 'noMonths', '추납 0개월이면 비교하지 않음');
+  ok(E.npsChunap3({ birth: 1972, startYear: 2015, endYear: 2020, gapMonths: 0, B: 3000000 }, { months: 12 }).reason === 'short', '가입기간 부족이면 비교하지 않음');
+}
+
 const f = E.npsBaseMonthly(1.296, 3193511, 3500000, 480);
 console.log('firework 대조(비례상수 1.296 가정):', Math.round(f), '원 (firework 표시 1,445,380원)');
 process.exit(bad ? 1 : 0);

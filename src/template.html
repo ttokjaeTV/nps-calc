@@ -341,6 +341,11 @@
   .guide-step figcaption b { color: var(--ink); }
   .gs-n { display: inline-block; width: 22px; height: 22px; line-height: 22px; text-indent: 0; text-align: center; border-radius: 50%; background: #DC2626; color: #fff; font-size: 12.5px; font-weight: 900; margin-right: 8px; vertical-align: 1px; }
   .guide-step img { width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid var(--border); }
+  .c3-table { min-width: 560px; }
+  .c3-table th, .c3-table td { text-align: right; }
+  .c3-table th:first-child, .c3-table td:first-child { text-align: left; font-weight: 800; }
+  .c3-table td.neg { color: #C8361B; }
+  .c3-table small { font-size: 12px; color: var(--ink-mute); font-weight: 600; }
   .ch-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); font-size: 14px; font-weight: 700; color: var(--ink-soft); }
   .ch-row:last-child { border-bottom: none; }
   .ch-row b { color: var(--ink); font-weight: 900; white-space: nowrap; }
@@ -351,6 +356,11 @@
     .guide-steps { grid-template-columns: 1fr; }
     .cmp-table { min-width: 520px; }
     .ch-big { font-size: 19px; }
+    .c3-table { min-width: 0; font-size: 10.5px; }
+    .c3-table th { white-space: normal; padding: 8px 3px; font-size: 10px; }
+    .c3-table td { padding: 8px 3px; }
+    .c3-table td:first-child, .c3-table th:first-child { white-space: normal; word-break: keep-all; width: 24%; }
+    .c3-table small { display: block; font-size: 10.5px; }
   }
 
   .method-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
@@ -723,6 +733,67 @@
     <div class="note-box" id="chunap-note">-</div>
   </div>
 
+  <div class="card" id="chunap3-card">
+    <div class="step-label"><div class="step-line"></div><span class="step-text">추납 3자 비교</span></div>
+    <h3 class="chart-title">추납 포기 vs 추납 후 조기 수령 vs 추납 후 정상 수령</h3>
+    <p class="chart-subtitle">추납으로 늘어난 연금을 <b>정상 나이에 받을지</b>, 늘어난 만큼을 <b>추납 전 월액이 될 때까지 앞당겨</b> 받을지, 아예 <b>추납하지 않을지</b>를 낸 돈을 빼고 비교합니다.</p>
+    <div class="grid-2" style="align-items:stretch;">
+      <div class="sub-card">
+        <div class="sub-card-title">입력 방식</div>
+        <div class="input-group">
+          <label class="label" for="c3m">월 연금·추납액을 어디서 가져올까요</label>
+          <select id="c3m">
+            <option value="auto">위 추납 조건으로 계산 (엔진 자동)</option>
+            <option value="direct">월 연금·추납액 직접 입력</option>
+          </select>
+          <div class="input-hint" id="c3m-hint">-</div>
+        </div>
+        <div id="c3-direct">
+          <div class="input-group">
+            <label class="label" for="c3a">추납 전 월 연금 (정상 수급)</label>
+            <div class="input-wrap">
+              <input type="number" id="c3a" data-unit="만원" value="100" step="1" min="0" max="1000" inputmode="decimal">
+              <span class="input-currency" id="c3a-display">-</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="label" for="c3d">추납으로 늘어나는 월 연금</label>
+            <div class="input-wrap">
+              <input type="number" id="c3d" data-unit="만원" value="20" step="1" min="0" max="1000" inputmode="decimal">
+              <span class="input-currency" id="c3d-display">-</span>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="label" for="c3k">추납액 (추납 보험료 합계)</label>
+            <div class="input-wrap">
+              <input type="number" id="c3k" data-unit="만원" value="1100" step="10" min="0" max="20000" inputmode="numeric">
+              <span class="input-currency" id="c3k-display">-</span>
+            </div>
+            <div class="input-hint">정상 수급 나이는 STEP 01의 출생연도로 정합니다.</div>
+          </div>
+        </div>
+      </div>
+      <div class="sub-card">
+        <div class="sub-card-title">한눈에</div>
+        <div id="c3-out">-</div>
+      </div>
+    </div>
+    <div class="table-wrap c3-part" style="margin-top:16px;">
+      <table class="data-table c3-table">
+        <thead><tr><th>&nbsp;</th><th>A. 추납 포기</th><th>B. 추납 + 조기 수령</th><th>C. 추납 + 정상 수령</th></tr></thead>
+        <tbody id="c3-body"></tbody>
+      </table>
+    </div>
+    <div class="chart-container c3-part" style="margin-top:16px;"><canvas id="c3-chart"></canvas></div>
+    <div class="table-wrap c3-part" style="margin-top:12px;">
+      <table class="data-table c3-table">
+        <thead><tr><th>나이</th><th>A. 추납 포기</th><th>B. 추납 + 조기</th><th>C. 추납 + 정상</th></tr></thead>
+        <tbody id="c3-age"></tbody>
+      </table>
+    </div>
+    <div class="note-box" id="c3-note">-</div>
+  </div>
+
   <div class="card" id="need-card">
     <div class="step-label"><div class="step-line"></div><span class="step-text">노후 생활비와 연결</span></div>
     <h3 class="chart-title">국민연금이 생활비의 몇 %를 채울까?</h3>
@@ -1024,6 +1095,7 @@ function render() {
   const full = res.ok && !res.short;
   ['detail-card', 'opt-card', 'chart-card', 'need-card', 'stat-grid'].forEach(id => show(id, full));
   show('chunap-card', res.ok);
+  show('chunap3-card', res.ok);
   if (!res.ok) {
     document.getElementById('verdict-label').textContent = '입력 확인';
     document.getElementById('verdict-main').textContent = res.error;
@@ -1043,6 +1115,7 @@ function render() {
     renderNeed(inp, res);
   }
   renderChunap(inp, res);
+  renderChunap3(inp);
   renderInsight(inp, res);
   syncUrl();
 }
@@ -1379,6 +1452,100 @@ function renderChunap(inp, res) {
   else if (isFinite(c.paybackMonths)) n += `오늘 돈 가치로 <b>${ageTxt(c.beAge)}보다 오래 받으면</b> 낸 보험료보다 더 받습니다. 연금은 물가만큼 오르지만, 그동안 이 돈을 다른 곳에 굴렸을 때의 수익은 넣지 않은 비교입니다. `;
   note.innerHTML = n + '<br>' + chunapFacts();
 }
+// ============== 추납 3자 비교 ==============
+//  A 추납 포기(정상 수급) · B 추납 후 조기 수급(월액이 추납 전 이상인 한도까지 앞당김) · C 추납 후 정상 수급. 계산은 엔진 npsChunap3·npsCompare3.
+//  자동 모드는 위 추납 조건(npsChunap)을, 직접 모드는 월 연금·증가분·추납액 입력을 쓴다. 조기 감액 월 0.5%(rules.js), 월액은 오늘 돈 가치, 추납액은 할인 없이 처음에 한 번 낸다.
+let c3Chart = null;
+const c3Won = n => n < 0 ? '−' + bigWon(Math.round(-n)) : bigWon(Math.round(n));
+const c3Axis = v => v < 0 ? '−' + axisWon(-v) : axisWon(v);
+const c3Man = n => (Math.round(n / 1e3) / 10).toLocaleString() + '만원';   // 1,002,000 → 100.2만원
+const c3Age = a => '만 ' + (Math.round(a * 100) / 100) + '세';             // 62.25 → 만 62.25세 (손익분기도 같은 표기)
+const c3Round1 = x => (Math.round(x * 10) / 10).toFixed(1);
+function c3Compute(inp) {
+  if (document.getElementById('c3m').value === 'auto') {
+    const t = npsChunap3(inp, { months: inp.cm, B: inp.cb, voluntary: inp.cv, appYear: CH_APP.y, appMonth: CH_APP.m });
+    if (t.ok) return t;
+    return { ok: false, msg: { input: '위 입력을 확인해 주세요.',
+      short: '추납 전 가입기간이 ' + MIN_Y + '년에 못 미쳐 3자 비교를 하지 않습니다. 위 추납 손익 카드의 결과를 보세요.',
+      noMonths: '추납할 기간이 0개월입니다. 위 STEP 01에 안 낸 기간을 넣고 추납할 기간을 정하거나, 「월 연금·추납액 직접 입력」을 고르세요.' }[t.reason] };
+  }
+  const v = id => parseFloat(document.getElementById(id).value) || 0;
+  const M0 = Math.round(v('c3a') * 1e4), M1 = M0 + Math.round(v('c3d') * 1e4), K = Math.round(v('c3k') * 1e4);
+  const S = inp.birth >= 1930 && inp.birth <= 2010 ? npsStartAge(inp.birth) : 65;
+  if (!(K > 0)) return { ok: false, msg: '추납액(추납 보험료 합계)을 0보다 크게 넣어 주세요. 0원이면 손익을 비교할 수 없습니다.' };
+  const t = npsCompare3({ S, M0, M1, cost: K, payAt: m => floor10(M1 * (1 - NPS.EARLY_PER_YEAR / 12 * m)) });
+  return t.ok ? t : { ok: false, msg: '추납 전 월 연금과 늘어나는 월 연금을 0보다 크게 넣어 주세요. 월 연금이 늘지 않으면 비교할 게 없습니다.' };
+}
+function renderChunap3(inp) {
+  const direct = document.getElementById('c3m').value === 'direct';
+  show('c3-direct', direct);
+  document.getElementById('c3m-hint').textContent = direct
+    ? '공단 예상 월액과 추납 후 예상 월액(늘어나는 만큼), 추납액을 그대로 넣어 보세요.'
+    : '추납할 기간·기준소득월액은 위 추납 손익 카드의 입력을 씁니다(안 낸 기간이 있어야 계산).';
+  const out = document.getElementById('c3-out'), t = c3Compute(inp);
+  document.querySelectorAll('#chunap3-card .c3-part').forEach(el => el.classList.toggle('is-hidden', !t.ok));
+  document.getElementById('c3-note').classList.toggle('is-hidden', !t.ok);
+  if (!t.ok) {
+    out.innerHTML = `<div class="input-hint"><b>${t.msg}</b></div>`;
+    if (c3Chart) { c3Chart.destroy(); c3Chart = null; }
+    return;
+  }
+  const { A, B, C, S } = t;
+  const xs = x => x === null ? '교차 없음' : c3Age(x);
+  out.innerHTML =
+    `<div class="ch-big">B는 ${t.m}개월 앞당긴 ${c3Age(B.s)}부터<small>추납 전 월액(${c3Man(t.M0)}) 이상을 지키는 가장 긴 조기 개월 수${t.capped ? ` (최대 ${NPS.MAX_EARLY}년에서 멈춤)` : ''}</small></div>` +
+    `<div class="ch-row"><span>정확히 맞추려면 앞당길 개월 (소수)</span><b>${c3Round1(t.mExact)}개월 → 내림 ${t.m}개월</b></div>` +
+    `<div class="ch-row"><span>상계월수 = 추납액 ÷ 월 증가액</span><b>${c3Round1(t.offsetMonths)}개월</b></div>` +
+    `<div class="ch-row"><span>단순 회수 기간 (C 기준)</span><b>${c3Round1(t.paybackYears)}년 · ${c3Age(t.paybackAge)}</b></div>`;
+  const row = (k, a, b, c) => `<tr><td>${k}</td><td>${a}</td><td>${b}</td><td>${c}</td></tr>`;
+  document.getElementById('c3-body').innerHTML =
+    row('월 연금', c3Man(A.M), `${c3Man(B.M)} <small>(−${c3Round1(t.m * t.perM * 100)}% 감액)</small>`, c3Man(C.M)) +
+    row('수급 시작', c3Age(A.s), c3Age(B.s), c3Age(C.s)) +
+    row('추납 비용', '0원', c3Won(B.K), c3Won(C.K)) +
+    row(`${c3Age(S)} 시점 순누적 <small>(비용 차감)</small>`, c3Won(npsNet(A, S)), c3Won(npsNet(B, S)), c3Won(npsNet(C, S))) +
+    row('손익분기 나이', `A↔B ${xs(t.xAB)}`, `B↔C ${xs(t.xBC)}`, `C↔A ${xs(t.xCA)}`);
+  const ages = []; for (let a = Math.ceil(B.s); a <= 100; a += (a < S ? 1 : 5)) ages.push(a);
+  document.getElementById('c3-age').innerHTML = ages.filter(a => a >= S - 3).map(a => {
+    const n = [A, B, C].map(L => npsNet(L, a)), mx = Math.max(...n);
+    return `<tr><td>만 ${a}세</td>${n.map(x => `<td class="${x < 0 ? 'neg' : x === mx ? 'c-accent' : ''}">${c3Won(x)}</td>`).join('')}</tr>`;
+  }).join('');
+  document.getElementById('c3-note').innerHTML =
+    `· A↔B 손익분기 <b>${xs(t.xAB)}</b>: 정상 나이(${c3Age(S)})에는 조기 수령 B가 A보다 <b>${c3Won(t.leadAB)}</b> ${t.leadAB >= 0 ? '앞섭니다' : '뒤집니다'}(추납액 차감). ` +
+    `B↔C 손익분기 <b>${xs(t.xBC)}</b>${t.xBC === null ? '' : ` (정상 수급 시작 후 ${Math.round((t.xBC - S) * 12)}개월)`}: 이 나이를 넘겨 오래 받을수록 C(정상 수령) 누적이 B를 앞섭니다.<br>` +
+    `· 월 연금은 매년 물가만큼 오른다고 보고 <b>오늘 돈 가치로 일정하게</b> 셌습니다. <b>할인율은 반영하지 않았고</b>, 낸 돈의 이자·투자수익도 넣지 않았습니다.<br>` +
+    `· 조기 수령은 감액률이 <b>평생 고정</b>됩니다. 월 0.5%씩(1년 6%, 최대 5년) 줄어든 금액을 계속 받습니다. 앞당길 개월 수는 위 ${t.m}개월(내림)을 기준으로 잡았고, 실제 신청 단위는 공단에 확인하세요.<br>` +
+    `· 조기 수령 중 일정 소득·사업소득이 있으면 연금이 줄어들 수 있습니다(소득 기준·감액 방식은 공단 확인). 이 비교에는 반영하지 않았습니다.<br>` +
+    `· 상계월수는 추납액을 월 증가액으로 나눈 값으로, 단순 회수 기간과 같은 값을 개월·년으로 달리 보인 것입니다. 추납 가능 기간·분할납부 여부·세금 효과는 공단·국세청에서 확인하세요.`;
+  drawChart3(t);
+}
+function drawChart3(t) {
+  const { A, B, C, S } = t;
+  const x0 = Math.floor(B.s) - 1, x1 = Math.ceil(S + 35);
+  const set = new Set([A.s, B.s, C.s]); for (let a = x0; a <= x1; a++) set.add(a);
+  const xs = [...set].sort((p, q) => p - q);       // 세 선이 같은 x 목록을 써야 툴팁(index)이 맞는다
+  const mk = (L, label, short, color) => ({ label, _short: short, data: xs.map(x => ({ x, y: npsNet(L, x) })), borderColor: color, backgroundColor: color, borderWidth: 3, pointRadius: 0, pointHoverRadius: 4, tension: 0 });
+  const datasets = [mk(A, `A. 추납 포기 (${c3Age(A.s)}~)`, 'A', '#3A2F26'), mk(B, `B. 추납 + 조기 (${c3Age(B.s)}~)`, 'B', '#2E5E8A'), mk(C, `C. 추납 + 정상 (${c3Age(C.s)}~)`, 'C', '#D9542B')];
+  const marks = [];
+  const add = (x, L, name, color) => { if (x !== null && x <= x1) marks.push({ age: x, value: npsNet(L, x), color, text: `${name} ${c3Age(x)}`, short: `${Math.round(x * 10) / 10}세` }); };
+  add(t.xAB, A, 'A↔B', '#2E5E8A'); add(t.xBC, B, 'B↔C', '#D9542B'); add(t.xCA, C, 'C↔A', '#8B8276');
+  const opts = JSON.parse(JSON.stringify(chartCommonOptions));
+  Object.assign(opts, {
+    interaction: { mode: 'index', intersect: false },
+    layout: { padding: { right: 8, top: 8 } },
+    scales: {
+      x: { type: 'linear', min: x0, max: x1, ticks: { stepSize: 5, callback: v => v + '세', font: { family: 'Pretendard', size: 11, weight: 600 }, color: '#8B8276' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+      y: { ticks: { callback: c3Axis, font: { family: 'Pretendard', size: 11, weight: 600 }, color: '#8B8276' }, grid: { color: 'rgba(0,0,0,0.06)' } },
+    },
+  });
+  opts.plugins.tooltip.callbacks = {
+    title: items => items.length ? `${c3Age(items[0].parsed.x)} 시점 (비용 차감 순누적)` : '',
+    label: c => `${c.dataset._short}: ${c3Won(c.parsed.y)}`,
+  };
+  opts.plugins.beMarks = { items: marks };
+  if (c3Chart) c3Chart.destroy();
+  c3Chart = new Chart(document.getElementById('c3-chart'), { type: 'line', data: { datasets }, options: opts, plugins: [endLabelPlugin, bePlugin] });
+}
+
 // 추납 신청 시점: 신청 달 입력이 없으므로 이번 달에 신청해 다음 달 말일(일시납 납부기한)까지 낸다고 본다
 const CH_APP = (() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() + 1 }; })();
 const rateTxt = r => Math.round(r * 1000) / 10 + '%';
@@ -1522,6 +1689,7 @@ function updateDisplays() {
   const cmv = v('cm'), cbv = v('cb'), na = v('nps-amt');
   set('cm-display', cmv > 0 ? monthsText(Math.min(NPS.MAX_CHUNAP, cmv)) : '없음', !(cmv > 0));
   set('cb-display', cbv > 0 ? '월 ' + formatManwon(cbv) : '입력', !(cbv > 0));
+  ['c3a', 'c3d', 'c3k'].forEach(id => { const x = v(id); set(id + '-display', x > 0 ? (Math.round(x * 10) / 10).toLocaleString() + '만원' : '입력', !(x > 0)); });
   set('nps-amt-display', na > 0 ? '월 ' + (Math.round(na * 10) / 10).toLocaleString() + '만원' : '입력', !(na > 0));
   const Bc = Math.max(NPS.B_MIN, Math.min(NPS.B_MAX, (inc || 0) * 10000));
   document.getElementById('premium-hint').innerHTML = inc > 0
@@ -1539,8 +1707,9 @@ function updateDisplays() {
 function rerender() { updateDisplays(); placeUnits(); render(); }
 
 function bindEvents() {
-  ['birth', 'start', 'end', 'gap', 'income', 'dep', 'plan', 'inflation', 'need', 'cm', 'cb', 'nps-amt'].forEach(id =>
+  ['birth', 'start', 'end', 'gap', 'income', 'dep', 'plan', 'inflation', 'need', 'cm', 'cb', 'nps-amt', 'c3a', 'c3d', 'c3k'].forEach(id =>
     document.getElementById(id).addEventListener('input', rerender));
+  document.getElementById('c3m').addEventListener('change', rerender);
   document.getElementById('solve-btn').addEventListener('click', solveFromNps);
   ['spouse', 'inf-on', 'cv'].forEach(id => document.getElementById(id).addEventListener('change', rerender));
   document.querySelectorAll('.chips[data-target]').forEach(box => box.addEventListener('click', e => {
@@ -1564,19 +1733,21 @@ function bindEvents() {
 }
 
 // ============== 주소로 값 주고받기 ==============
-// 예: ?by=1972&sy=1998&ey=2031&gap=0&b=300&t=0&sp=0&dep=0&plan=90&inf=2.5&need=298&cm=36&cb=300&cv=0  (금액은 만원, t = 받는 시기 −5~5, inf=0이면 미래 금액 끔, cm·cb·cv = 추납 개월·기준소득월액·임의가입)
-const URL_MAP = { by: 'birth', sy: 'start', ey: 'end', gap: 'gap', b: 'income', dep: 'dep', plan: 'plan', need: 'need', cm: 'cm', cb: 'cb' };
-const URL_LIM = { by: [1930, 2010], sy: [NPS.FIRST_YEAR, 2080], ey: [NPS.FIRST_YEAR, 2080], gap: [0, 600], b: [0, 2000], dep: [0, 10], plan: [60, 110], need: [0, 5000], cm: [0, NPS.MAX_CHUNAP], cb: [0, 2000] };
+// 예: ?by=1972&sy=1998&ey=2031&gap=0&b=300&t=0&sp=0&dep=0&plan=90&inf=2.5&need=298&cm=36&cb=300&cv=0  (금액은 만원, t = 받는 시기 −5~5, inf=0이면 미래 금액 끔, cm·cb·cv = 추납 개월·기준소득월액·임의가입, m3=1이면 추납 3자 비교 직접 입력 모드, a3·d3·k3 = 추납 전 월 연금·늘어나는 월 연금·추납액(만원))
+const URL_MAP = { by: 'birth', sy: 'start', ey: 'end', gap: 'gap', b: 'income', dep: 'dep', plan: 'plan', need: 'need', cm: 'cm', cb: 'cb', a3: 'c3a', d3: 'c3d', k3: 'c3k' };
+const URL_LIM = {a3: [0, 1000], d3: [0, 1000], k3: [0, 20000], by: [1930, 2010], sy: [NPS.FIRST_YEAR, 2080], ey: [NPS.FIRST_YEAR, 2080], gap: [0, 600], b: [0, 2000], dep: [0, 10], plan: [60, 110], need: [0, 5000], cm: [0, NPS.MAX_CHUNAP], cb: [0, 2000] };
 function buildUrl() {
   const p = new URLSearchParams();
   Object.entries(URL_MAP).forEach(([k, id]) => { const v = parseFloat(document.getElementById(id).value); if (isFinite(v)) p.set(k, String(Math.round(v * 100) / 100)); });
   p.set('t', SEL);
   if (document.getElementById('spouse').checked) p.set('sp', 1);
   if (document.getElementById('cv').checked) p.set('cv', 1);
+  p.set('m3', document.getElementById('c3m').value === 'direct' ? 1 : 0);   // 0도 적어 둬야 자동 모드로 공유한 링크가 다시 직접 모드로 열리지 않는다
   p.set('inf', document.getElementById('inf-on').checked ? (Math.round(parseFloat(document.getElementById('inflation').value) * 100) / 100 || 0) : 0);
   return location.href.split('?')[0].split('#')[0] + '?' + p.toString();
 }
 function syncUrl() { try { history.replaceState(null, '', buildUrl() + location.hash); } catch (e) { /* file:// 등에서는 무시 */ } }
+let C3_URL_SET = false;   // 주소에 m3(직접 입력 여부)가 있었는지
 function readUrl() {
   let q; try { q = new URLSearchParams(location.search); } catch (e) { return; }
   if (!q.toString()) return;
@@ -1589,6 +1760,8 @@ function readUrl() {
   const t = parseInt(q.get('t'), 10); if (t >= -NPS.MAX_EARLY && t <= NPS.MAX_DELAY) SEL = t;
   if (q.get('sp') === '1') document.getElementById('spouse').checked = true;
   if (q.get('cv') === '1') document.getElementById('cv').checked = true;
+  if (q.get('m3') === '1') document.getElementById('c3m').value = 'direct';
+  C3_URL_SET = q.get('m3') === '0' || q.get('m3') === '1';
   if (q.has('inf')) {
     const v = parseFloat(q.get('inf'));
     if (v === 0) document.getElementById('inf-on').checked = false;
@@ -1599,6 +1772,8 @@ function readUrl() {
 window.addEventListener('DOMContentLoaded', () => {
   readUrl();
   bindEvents();
+  /* 3자 비교 첫 화면: 안 낸 기간이 없어 자동 모드가 '0개월'이면 사례값이 든 직접 입력 모드로 열어 결과부터 보여 준다(주소에 m3가 있으면 그대로) */
+  if (!C3_URL_SET) { try { const i = readInputs(); if (!npsChunap3(i, { months: i.cm, B: i.cb, voluntary: i.cv, appYear: CH_APP.y, appMonth: CH_APP.m }).ok) document.getElementById('c3m').value = 'direct'; } catch (e) { document.getElementById('c3m').value = 'direct'; } }
   rerender();
   /* 내 정보(다른 노후 계산기와 같이 쓰는 값) 채우기·저장 — 허브 profile-v1.js. 계산한 월 연금액은 저장 버튼으로 */
   if (window.TJProfile) {
