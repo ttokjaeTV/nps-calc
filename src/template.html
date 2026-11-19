@@ -209,8 +209,10 @@
 
   /* 시나리오 표 */
   .scroll-hint { display: none; margin: 12px 0 -8px; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
-  @media (max-width: 536px) { .scroll-hint.sh-536 { display: block; } }
   @media (max-width: 616px) { .scroll-hint.sh-616 { display: block; } }
+  @media (max-width: 536px) { .scroll-hint.sh-536 { display: block; } }
+  @media (max-width: 576px) { .scroll-hint.sh-576 { display: block; } }
+  @media print { .scroll-hint { display: none !important; } }
   .scroll-hint:has(+ .tjl-box) { display: none !important; }
   .table-wrap { overflow-x: auto; margin-top: 16px; border-radius: 12px; }
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
@@ -359,7 +361,7 @@
   .ch-big small { display: block; font-size: 13px; color: var(--ink-mute); font-weight: 600; letter-spacing: 0; }
   @media (max-width: 768px) {
     .guide-steps { grid-template-columns: 1fr; }
-    .cmp-table { min-width: 520px; }
+    .detail-table.cmp-table { min-width: 520px; }
     .ch-big { font-size: 19px; }
     .c3-table { min-width: 0; font-size: 10.5px; }
     .c3-table th { white-space: normal; padding: 8px 3px; font-size: 10px; }
@@ -832,6 +834,7 @@
     <div class="step-label"><div class="step-line"></div><span class="step-text">공단 조회와 무엇이 다른가요?</span></div>
     <h3 class="chart-title">공단 조회는 '지금 내 실제 금액', 이 계산기는 '만약에'</h3>
     <p class="chart-subtitle">둘은 경쟁 관계가 아닙니다. 공단에서 실제 예상액을 먼저 확인하고, 그 금액에 맞춘 뒤 여기서 조건을 바꿔 보는 게 가장 정확한 사용법입니다.</p>
+    <p class="scroll-hint sh-576" aria-hidden="true">← 옆으로 밀어 보세요 →</p>
     <div class="table-wrap" style="margin-top:0;">
       <table class="data-table detail-table cmp-table">
         <thead><tr><th style="text-align:left;">구분</th><th style="text-align:left;">국민연금공단 '예상연금액 조회'</th><th style="text-align:left;">이 계산기</th></tr></thead>
