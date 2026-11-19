@@ -209,8 +209,10 @@
 
   /* 시나리오 표 */
   .scroll-hint { display: none; margin: 12px 0 -8px; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+  @media (max-width: 337px) { .scroll-hint.sh-337 { display: block; } }
   @media (max-width: 616px) { .scroll-hint.sh-616 { display: block; } }
   @media (max-width: 536px) { .scroll-hint.sh-536 { display: block; } }
+  @media (max-width: 353px) { .scroll-hint.sh-353 { display: block; } }
   @media (max-width: 576px) { .scroll-hint.sh-576 { display: block; } }
   @media print { .scroll-hint { display: none !important; } }
   .scroll-hint:has(+ .tjl-box) { display: none !important; }
@@ -655,6 +657,7 @@
     </div>
     <details class="more">
       <summary>가입 시기별 비례상수 보기</summary>
+      <p class="scroll-hint sh-337" aria-hidden="true">← 옆으로 밀어 보세요 →</p>
       <div class="table-wrap">
         <table class="data-table detail-table">
           <thead><tr><th style="text-align:left;">가입 기간</th><th>비례상수</th><th>소득대체율(40년 기준)</th><th>가입월수</th></tr></thead>
@@ -788,6 +791,7 @@
         <div id="c3-out">-</div>
       </div>
     </div>
+    <p class="scroll-hint sh-353" aria-hidden="true">← 옆으로 밀어 보세요 →</p>
     <div class="table-wrap c3-part" style="margin-top:16px;">
       <table class="data-table c3-table">
         <thead><tr><th>&nbsp;</th><th>A. 추납 포기</th><th>B. 추납 + 조기 수령</th><th>C. 추납 + 정상 수령</th></tr></thead>
