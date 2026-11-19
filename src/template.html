@@ -544,7 +544,7 @@
             <button class="chip" data-v="500">500만</button>
             <button class="chip" data-chip-rule="B_MAX">상한 <span data-rule="NPS.incomeCapMonthly/1e4">659</span>만</button>
           </div>
-          <div class="input-hint">보험료를 매기는 기준소득월액의 평균입니다. 직장인은 비과세(식대 등)를 뺀 세전 월급, 지역가입자는 신고한 소득. 예전 소득은 <b>오늘 돈 가치로 환산</b>해 평균을 내세요 (공단도 과거 소득을 재평가해 계산합니다).</div>
+          <div class="input-hint">보험료를 매기는 기준소득월액의 평균입니다. 직장인은 비과세(식대 등)를 뺀 세전 월급, 지역가입자는 신고한 소득. 예전 소득은 <b>오늘 돈 가치로 환산</b>해 평균을 내세요 (공단도 과거 소득을 재평가해 계산합니다). <b>내 값은 공단 '가입내역조회'의 B값을 만원 단위로 반올림해 넣으세요</b> — <a href="#nps-b">확인하는 곳 보기 ↓</a></div>
           <div class="input-hint" id="premium-hint">-</div>
         </div>
         <details class="more" id="solve-box" style="margin-top:6px;">
@@ -862,6 +862,21 @@
       <figure class="guide-step"><figcaption><span class="gs-n">7</span>아래 <b>'추납 희망기간'</b>을 넣고 <b>조회</b>를 누르면 <b>'예상 추납보험료'</b>가 나옵니다 (일시납부 기준, 분할납부는 최대 60회·이자 별도)</figcaption><img src="img/nps-step6.jpg" alt="추납 희망기간 조회와 예상 추납보험료 화면(금액·개월 수 가림)" loading="lazy"></figure>
     </div>
     <div class="note-box">⚠ <b>4단계에서 '접수·제출'을 누르면 실제 신청이 됩니다.</b> 금액만 보려면 '조회'까지만 누르세요. 신청하려면 혼인관계증명서 등 증빙서류가 있어야 합니다. 공단 신청 화면은 <b>추납액만</b> 보여 주고 추납으로 <b>늘어나는 월 연금은 보여 주지 않습니다</b> — 그 부분은 이 계산기의 <a class="ext-link" href="#chunap-card">추납 손익</a>에서 계산하세요.</div>
+    <div class="method-sub" id="nps-b" style="margin-top:24px;">평균 월소득은 여기서 확인해요 — 가입내역조회 (PC) <span style="font-size:12.5px;color:var(--ink-mute);font-weight:700;">2026-11-19 화면 · 이름·금액·기간·회사명은 가렸어요</span></div>
+    <div class="guide-steps">
+      <figure class="guide-step"><figcaption><span class="gs-n">8</span>공단 <b>전자민원 → 개인 → 조회 → 가입내역조회</b>를 열고 아래로 내리면 <b>'연금보험료 상세내역'</b> 표가 나옵니다. 기간별 <b>기준소득월액</b>(내 소득 흐름)이 있어요. 평균을 직접 낼 필요는 없고, 값이 상식적인지 확인하는 용도입니다</figcaption><img src="img/nps-income1.jpg" alt="가입내역조회 연금보험료 상세내역 화면(기간·금액·회사명 가림)" loading="lazy"></figure>
+      <figure class="guide-step"><figcaption><span class="gs-n">9</span>더 내려가 <b>'연금계산내역(노령연금)'</b> 표 오른쪽 아래의 <b>B값</b>이 공단이 과거 소득을 재평가해 계산한 평균소득이에요. 이 값을 <b>만원 단위로 반올림해 이 계산기의 '평균 월소득'에</b> 넣으세요</figcaption><img src="img/nps-income2.jpg" alt="가입내역조회 연금계산내역의 A값·B값 화면(금액 가림)" loading="lazy"></figure>
+    </div>
+    <table class="data-table guide-num" style="max-width:820px;margin-top:10px;">
+      <thead><tr><th style="text-align:left;">이 계산기 입력칸</th><th style="text-align:left;">공단 가입내역조회에서 볼 곳</th></tr></thead>
+      <tbody>
+        <tr><td style="text-align:left;"><b>평균 월소득</b></td><td style="text-align:left;">'연금계산내역(노령연금)'의 <b>B값</b> (만원 단위 반올림)</td></tr>
+        <tr><td style="text-align:left;">가입 시작연도</td><td style="text-align:left;">'연금보험료 상세내역' 맨 위 행의 기간 시작 연도</td></tr>
+        <tr><td style="text-align:left;">가입 종료연도</td><td style="text-align:left;">'예상연금월액'의 <b>총 예상가입기간</b>이 끝나는 연도</td></tr>
+        <tr><td style="text-align:left;">안 낸 기간</td><td style="text-align:left;">'납부하지 않은 보험료' 개월 수가 아니라, 가입 중간에 비어 있는 기간(군복무·휴직 등)을 직접 확인해 넣기</td></tr>
+      </tbody>
+    </table>
+    <div class="note-box">⚠ 공단의 B값에는 <b>가입 종료연도까지 지금 소득이 이어진다는 가정</b>이 들어 있어요. 그래서 B값과 종료연도(총 예상가입기간의 끝)를 <b>한 쌍</b>으로 넣어야 하고, 종료연도를 바꾸면 B값도 다시 계산해야 합니다. 또 공단 B값은 이미 현재가치로 환산된 값이라 별도로 물가를 반영하지 않아도 됩니다.</div>
   </div>
 
   <div class="card">
