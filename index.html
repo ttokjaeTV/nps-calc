@@ -5,6 +5,7 @@
 <script src="https://ttokjaetv.github.io/member-lock.js"></script>
 <script src="https://ttokjaetv.github.io/profile-v1.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.ico">
 <title>국민연금 계산기 · 똑재TV</title>
 <meta name="description" content="국민연금 예상 월 수령액을 공단 공식 산식(2026년 A값·소득대체율 43% 반영)으로 계산합니다. 조기·정상·연기 11가지 시기 비교와 손익분기 나이까지 한 번에.">
 <meta property="og:title" content="국민연금 계산기 · 똑재TV">
@@ -207,6 +208,10 @@
   .chart-container.sm { height: 300px; }
 
   /* 시나리오 표 */
+  .scroll-hint { display: none; margin: 12px 0 -8px; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink-mute); }
+  @media (max-width: 536px) { .scroll-hint.sh-536 { display: block; } }
+  @media (max-width: 616px) { .scroll-hint.sh-616 { display: block; } }
+  .scroll-hint:has(+ .tjl-box) { display: none !important; }
   .table-wrap { overflow-x: auto; margin-top: 16px; border-radius: 12px; }
   .data-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
   .data-table th {
@@ -666,6 +671,7 @@
       <button type="button" class="dl-btn" id="dl-xlsx" data-member-click="엑셀 내려받기">엑셀(.xlsx) 내려받기</button>
       <span class="dl-note">엑셀에는 시기별 비교표와 나이별 누적 수령액(원 단위)이 함께 들어갑니다</span>
     </div>
+    <p class="scroll-hint sh-616" aria-hidden="true">← 옆으로 밀어 보세요 →</p>
     <div class="table-wrap">
       <table class="data-table opt-table">
         <thead><tr><th>받는 시기</th><th>시작 나이</th><th>조정률</th><th>월 연금 (오늘 돈 가치)</th><th id="opt-cum-h">누적 수령액</th><th>정상 대비 손익분기</th></tr></thead>
@@ -680,6 +686,7 @@
     <div class="chart-container"><canvas id="cum-chart"></canvas></div>
     <details class="more">
       <summary data-member-click="나이별 누적 표">나이별 누적 수령액 표 보기</summary>
+      <p class="scroll-hint sh-536" aria-hidden="true">← 옆으로 밀어 보세요 →</p>
       <div class="table-wrap">
         <table class="data-table age-table">
           <thead id="age-head"></thead>
